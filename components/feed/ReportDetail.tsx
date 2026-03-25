@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { useMapHighlight } from '../../contexts/MapHighlightContext';
 import { CommentData, ReportData } from './FeedCard';
 
 const COLORS = {
@@ -87,8 +89,19 @@ export default function ReportDetail({
   likesCount,
 }: ReportDetailProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { setHighlightedReportId } = useMapHighlight();
+
   const [newComment, setNewComment] = useState('');
   const keyboardPadding = useRef(new Animated.Value(0)).current;
+
+  const handleJoin = () => {
+    if (report) {
+      setHighlightedReportId(report.id);
+      onClose();
+      router.push('/map');
+    }
+  };
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -190,7 +203,7 @@ export default function ReportDetail({
                 <Ionicons name="share-social-outline" size={24} color={COLORS.textPrimary} />
               </Pressable>
             </View>
-            <Pressable style={styles.joinBtnDetail}>
+            <Pressable style={styles.joinBtnDetail} onPress={handleJoin}>
               <Ionicons name="hand-left-outline" size={18} color={COLORS.primary} />
               <Text style={styles.joinBtnText}>Me uno</Text>
             </Pressable>

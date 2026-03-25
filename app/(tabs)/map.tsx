@@ -3,6 +3,8 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapComponent from '../../components/MapComponent';
 import { useUserLocation } from '../../hooks/useUserLocation';
+import { useMapHighlight } from '../../contexts/MapHighlightContext';
+import { useFocusEffect } from 'expo-router';
 
 export type ReportCategory = 'trash' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
 
@@ -140,6 +142,32 @@ export default function MapScreen() {
     setShowRoute(false);
     setRouteCoords([]);
   };
+
+  const { highlightedReportId, clearHighlight } = useMapHighlight();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (highlightedReportId) {
+        // Feed mocks have IDs like 'r1', 'r2', etc. Map mocks have '1', '2'.
+        // We'll try to find a match by extracting the number, or just pick the first one if no match.
+        const numMatch = highlightedReportId.replace(/\D/g, '');
+        const targetId = numMatch || '1';
+        
+        const reportToSelect = MOCK_REPORTS.find(r => r.id === targetId) || MOCK_REPORTS[0];
+        
+        if (reportToSelect) {
+          // Reset filters if category doesn't match
+          if (activeFilter !== 'all' && activeFilter !== reportToSelect.category) {
+            setActiveFilter('all');
+          }
+          handleSelectReport(reportToSelect);
+        }
+        
+        // Clear it so it doesn't re-trigger every time we visit the map
+        clearHighlight();
+      }
+    }, [highlightedReportId, activeFilter, clearHighlight])
+  );
 
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceKm: number; durationMins: number } | null>(null);

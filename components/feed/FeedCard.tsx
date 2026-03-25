@@ -9,6 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useMapHighlight } from '../../contexts/MapHighlightContext';
 
 // -- Colores del proyecto --
 const COLORS = {
@@ -91,6 +93,9 @@ interface FeedCardProps {
 }
 
 export default function FeedCard({ report, onOpenComments, onPress }: FeedCardProps) {
+  const router = useRouter();
+  const { setHighlightedReportId } = useMapHighlight();
+
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(report.likesCount);
   const [shared, setShared] = useState(false);
@@ -125,6 +130,11 @@ export default function FeedCard({ report, onOpenComments, onPress }: FeedCardPr
     } catch {
       // user cancelled share
     }
+  };
+
+  const handleJoin = () => {
+    setHighlightedReportId(report.id);
+    router.push('/map');
   };
 
   const categoryColor = COLORS.category[report.category] || COLORS.category.other;
@@ -256,7 +266,7 @@ export default function FeedCard({ report, onOpenComments, onPress }: FeedCardPr
           </Text>
         </Pressable>
 
-        <Pressable style={[styles.actionButton, styles.joinButton]}>
+        <Pressable style={[styles.actionButton, styles.joinButton]} onPress={handleJoin}>
           <Ionicons name="hand-left-outline" size={18} color={COLORS.primary} />
           <Text style={[styles.actionText, { color: COLORS.primary, fontWeight: '600' }]}>
             Me uno
