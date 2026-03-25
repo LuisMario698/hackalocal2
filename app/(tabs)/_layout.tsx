@@ -41,6 +41,15 @@ function getTabMeta(routeName: string) {
     };
   }
 
+  if (routeName === 'reports') {
+    return {
+      label: 'Reportes',
+      icon: (color: string, size: number) => (
+        <Ionicons name="alert-circle" size={size} color={color} />
+      ),
+    };
+  }
+
   return {
     label: routeName,
     icon: (color: string, size: number) => (
@@ -53,9 +62,9 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  const barSideMargin = 52;
+  const barSideMargin = 32;
   const innerPadding = 6;
-  const barWidth = Math.min(340, Math.max(236, width - barSideMargin * 2));
+  const barWidth = Math.min(400, Math.max(280, width - barSideMargin * 2));
   const segmentWidth = (barWidth - innerPadding * 2) / state.routes.length;
 
   const translateX = useRef(new Animated.Value(state.index * segmentWidth)).current;
@@ -172,6 +181,12 @@ export default function TabLayout() {
           title: 'Mapa',
         }}
     
+      />
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: 'Reportes',
+        }}
       />
       <Tabs.Screen
         name="profile"
