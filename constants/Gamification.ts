@@ -12,15 +12,15 @@ export interface Level {
   level: number;
   name: string;
   minPoints: number;
-  icon: string; // emoji
+  icon: string; // Ionicons name
 }
 
 export const LEVELS: Level[] = [
-  { level: 1, name: 'Eco-Iniciado', minPoints: 0, icon: '🌱' },
-  { level: 2, name: 'Eco-Activo', minPoints: 100, icon: '🌿' },
-  { level: 3, name: 'Eco-Guardián', minPoints: 300, icon: '🌳' },
-  { level: 4, name: 'Eco-Líder', minPoints: 600, icon: '🦅' },
-  { level: 5, name: 'Eco-Héroe', minPoints: 1000, icon: '🌍' },
+  { level: 1, name: 'Eco-Iniciado', minPoints: 0, icon: 'leaf-outline' },
+  { level: 2, name: 'Eco-Activo', minPoints: 100, icon: 'leaf' },
+  { level: 3, name: 'Eco-Guardián', minPoints: 300, icon: 'shield-outline' },
+  { level: 4, name: 'Eco-Líder', minPoints: 600, icon: 'shield-checkmark' },
+  { level: 5, name: 'Eco-Héroe', minPoints: 1000, icon: 'earth' },
 ];
 
 export function getUserLevel(points: number): Level {
@@ -50,7 +50,7 @@ export interface Badge {
   id: string;
   name: string;
   description: string;
-  icon: string; // emoji
+  icon: string; // Ionicons name
   requirement: string;
 }
 
@@ -59,49 +59,49 @@ export const BADGES: Badge[] = [
     id: 'first_report',
     name: 'Primer Reporte',
     description: 'Creaste tu primer reporte',
-    icon: '🏅',
+    icon: 'ribbon',
     requirement: 'Crear 1 reporte',
   },
   {
     id: 'cleaner_novice',
     name: 'Limpiador Novato',
     description: 'Completaste tu primera tarea de limpieza',
-    icon: '🧹',
+    icon: 'sparkles',
     requirement: 'Completar 1 tarea',
   },
   {
     id: 'five_stars',
     name: 'Cinco Estrellas',
     description: 'Completaste 5 tareas de limpieza',
-    icon: '⭐',
+    icon: 'star',
     requirement: 'Completar 5 tareas',
   },
   {
     id: 'weekly_streak',
     name: 'Racha Semanal',
     description: '7 días consecutivos activo',
-    icon: '🔥',
-    requirement: '7 días seguidos',
+    icon: 'flame',
+    requirement: '7 dias seguidos',
   },
   {
     id: 'beach_guardian',
-    name: 'Guardián de Playa',
-    description: 'Completaste una misión en playa',
-    icon: '🏖️',
-    requirement: 'Misión en playa',
+    name: 'Guardian de Playa',
+    description: 'Completaste una mision en playa',
+    icon: 'sunny',
+    requirement: 'Mision en playa',
   },
   {
     id: 'top_10',
     name: 'Top 10',
-    description: 'Estás en el leaderboard del mes',
-    icon: '🏆',
+    description: 'Estas en el leaderboard del mes',
+    icon: 'trophy',
     requirement: 'Top 10 mensual',
   },
   {
     id: 'eco_hero',
-    name: 'Eco-Héroe',
+    name: 'Eco-Heroe',
     description: 'Alcanzaste el nivel 5',
-    icon: '💎',
+    icon: 'diamond',
     requirement: 'Nivel 5',
   },
 ];
@@ -121,21 +121,21 @@ export const REPORT_CATEGORIES: CategoryInfo[] = [
   {
     id: 'pothole',
     name: 'Baches',
-    icon: '🕳️',
+    icon: 'warning-outline',
     color: '#F59E0B',
     description: 'Baches en calles o banquetas',
   },
   {
     id: 'trash',
     name: 'Basura en exceso',
-    icon: '🗑️',
+    icon: 'trash-outline',
     color: '#E24B4A',
-    description: 'Acumulación de basura en espacios públicos',
+    description: 'Acumulacion de basura en espacios publicos',
   },
   {
     id: 'drain',
     name: 'Desborde de drenaje',
-    icon: '🚰',
+    icon: 'water-outline',
     color: '#378ADD',
     description: 'Problemas de alcantarillado o drenaje',
   },

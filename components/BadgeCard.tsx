@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import type { Badge } from '../constants/Gamification';
 
@@ -10,14 +11,14 @@ interface BadgeCardProps {
 export default function BadgeCard({ badge, unlocked }: BadgeCardProps) {
   return (
     <View style={[styles.container, !unlocked && styles.locked]}>
-      <Text style={[styles.icon, !unlocked && styles.iconLocked]}>
-        {badge.icon}
-      </Text>
+      <View style={[styles.iconWrap, !unlocked && styles.iconLocked]}>
+        <Ionicons name={badge.icon as any} size={26} color={unlocked ? Colors.gold : Colors.textMuted} />
+      </View>
       <Text style={[styles.name, !unlocked && styles.nameLocked]} numberOfLines={1}>
         {badge.name}
       </Text>
       {unlocked ? (
-        <Text style={styles.check}>✓</Text>
+        <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
       ) : (
         <Text style={styles.requirement} numberOfLines={2}>
           {badge.requirement}
@@ -48,8 +49,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderLight,
     opacity: 0.6,
   },
-  icon: {
-    fontSize: 28,
+  iconWrap: {
     marginBottom: 6,
   },
   iconLocked: {
@@ -64,11 +64,6 @@ const styles = StyleSheet.create({
   },
   nameLocked: {
     color: Colors.textMuted,
-  },
-  check: {
-    fontSize: 14,
-    color: Colors.success,
-    fontWeight: '700',
   },
   requirement: {
     fontSize: 9,
