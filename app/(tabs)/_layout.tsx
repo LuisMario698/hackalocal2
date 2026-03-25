@@ -32,10 +32,19 @@ function getTabMeta(routeName: string) {
     };
   }
 
+  if (routeName === 'profile') {
+    return {
+      label: 'Perfil',
+      icon: (color: string, size: number) => (
+        <Ionicons name="person" size={size} color={color} />
+      ),
+    };
+  }
+
   return {
-    label: 'Perfil',
+    label: routeName,
     icon: (color: string, size: number) => (
-      <Ionicons name="person" size={size} color={color} />
+      <Ionicons name="ellipse" size={size} color={color} />
     ),
   };
 }
@@ -162,9 +171,10 @@ export default function TabLayout() {
         options={{
           title: 'Mapa',
         }}
+    
       />
       <Tabs.Screen
-        name="explore"
+        name="profile"
         options={{
           title: 'Perfil',
         }}
