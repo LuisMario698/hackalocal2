@@ -8,7 +8,7 @@ App web PWA para gestión comunitaria de residuos y problemas ambientales. Feed 
 - **Frontend**: React Native + Expo + Expo Router + TypeScript + NativeWind (o TailwindCSS)
 - **Mapas**: react-native-maps (móvil) + react-leaflet (web)
 - **Backend/DB/Auth/Storage/Realtime**: Supabase
-- **IA**: API de OpenAI (GPT-4 / Vision) — clasificación de residuos por imagen + transcripción de voz con Whisper
+- **IA**: (Pospuesto para siguientes fases)
 - **QR**: react-native-qrcode-svg (generación) + expo-camera (escaneo)
 - **Charts**: react-native-chart-kit o victory-native
 - **Deploy**: Vercel (web) + Expo EAS (iOS/Android)
@@ -36,7 +36,7 @@ social-clean/
 │   │   └── ReportMarker.tsx    # Marcador custom por categoría
 │   ├── report/
 │   │   ├── PhotoCapture.tsx    # Captura de foto en móvil/web
-│   │   └── AIClassifier.tsx    # Llamada a Claude
+│   │   └── AIClassifier.tsx    # (Pospuesto)
 │   ├── ui/
 │   │       ├── Button.tsx
 │   │       └── Modal.tsx
@@ -46,7 +46,7 @@ social-clean/
 │   └── useReports.ts           # Supabase Realtime
 ├── lib/
 │   ├── supabase.ts             # Supabase Client
-│   └── openai.ts               # Wrapper OpenAI API
+│   └── openai.ts               # (Pospuesto para siguientes fases)
 ├── supabase/
 │   └── migrations/
 │       └── 001_initial.sql
@@ -298,13 +298,11 @@ El navbar se oculta cuando el usuario hace scroll down y reaparece al scroll up.
 
 ### 3. REPORTAR (pantalla central)
 - Paso 1: Tomar foto o seleccionar de galería
-- Paso 2: IA clasifica automáticamente (categoría + sugerencia de acción)
-  - Llamada a OpenAI API (con modelo Vision) con imagen en base64
-  - Prompt: "Clasifica este residuo: categoría (trash/water/wildlife/electronic/organic), gravedad 1-5, sugerencia de acción. Responde solo JSON."
+- Paso 2: Usuario selecciona manualmente la categoría y gravedad del incidente.
 - Paso 3: Usuario confirma/edita clasificación, agrega descripción
 - Paso 4: Ubicación (geolocalización auto o selección manual en mini-mapa)
 - Paso 5: Publicar → +10 ecopuntos
-- Alternativa: Reporte por voz → Web Speech API transcribe → IA extrae datos
+- (Pospuesto: Reporte por voz e IA)
 
 ### 4. RECOMPENSAS
 - Saldo de ecopuntos arriba
@@ -340,14 +338,14 @@ El navbar se oculta cuando el usuario hace scroll down y reaparece al scroll up.
 | Requisito | Feature en Social Clean |
 |-----------|----------------------|
 | Ecosistema digital (ciudadanos, gobierno, empresas, organizaciones) | 4 roles con vistas diferenciadas |
-| Gestión de residuos | Reportes con clasificación IA |
+| Gestión de residuos | Reportes con clasificación manual |
 | Economía circular | Marketplace implícito: reportes + recompensas de empresas recicladoras |
 | Monitoreo ambiental | Mapa con reportes en tiempo real + mapa de calor |
 | Accesibilidad | Modo accesible, textos grandes, alto contraste |
 | Bajo nivel tecnológico | Flujos de máximo 3 pasos, reporte por voz |
 | Multilingüe | Español + Yaqui |
 | Dashboards/analítica | Dashboard autoridades (react-native-chart-kit) |
-| IA | Clasificación de residuos por imagen con OpenAI API |
+| IA | (Pospuesta para iteraciones futuras) |
 | Impacto medible | Métricas automáticas: reportes, kg, ecopuntos, participación |
 
 ## Verificación de tareas
@@ -379,7 +377,7 @@ El navbar se oculta cuando el usuario hace scroll down y reaparece al scroll up.
 ```
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
-EXPO_PUBLIC_OPENAI_API_KEY=
+# EXPO_PUBLIC_OPENAI_API_KEY= (Pospuesto)
 ```
 
 ## Orden de implementación (prioridad hackathon)
@@ -388,7 +386,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=
 3. Navbar + Layout
 4. Feed: listar reportes + crear reporte con foto
 5. Mapa: react-leaflet + marcadores + filtros
-6. IA: clasificación de imagen con Claude API
+6. (Pospuesto) IA: clasificación de imagen
 7. Tareas: asignarse + completar + verificar
 8. Recompensas: cupones + QR
 9. Dashboard autoridades
