@@ -29,7 +29,8 @@
       "expo-router"
     ],
     "experiments": {
-      "typedRoutes": true
-    }
+      "typedRoutes": false
+    },
+    "newArchEnabled": false
   }
 }

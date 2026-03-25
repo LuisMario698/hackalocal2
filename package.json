@@ -10,14 +10,14 @@
     "build:web": "expo export --platform web"
   },
   "dependencies": {
-    "expo": "~52.0.0",
-    "expo-router": "~4.0.0",
-    "expo-status-bar": "~2.0.0",
+    "@expo/metro-runtime": "~5.0.4",
+    "expo": "~54.0.0",
+    "expo-router": "~5.0.7",
+    "expo-status-bar": "~2.2.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-native": "0.76.5",
-    "react-native-web": "~0.19.13",
-    "@expo/metro-runtime": "~4.0.0"
+    "react-native": "0.77.0",
+    "react-native-web": "~0.19.13"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
