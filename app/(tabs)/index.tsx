@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
@@ -10,6 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeedList from '../../components/feed/FeedList';
+import CommentsSheet from '../../components/feed/CommentsSheet';
+import { CommentData, ReportData } from '../../components/feed/FeedCard';
 
 const PRIMARY = '#1D9E75';
 const FILTERS = ['Todos', 'Recientes', 'Cercanos', 'Mas apoyados'];
@@ -19,6 +21,47 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Comments sheet state
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [activeReport, setActiveReport] = useState<ReportData | null>(null);
+  const [commentsMap, setCommentsMap] = useState<Record<string, CommentData[]>>({});
+
+  const handleOpenComments = useCallback((report: ReportData) => {
+    setActiveReport(report);
+    // Initialize comments from mock data if not yet in map
+    setCommentsMap((prev) => {
+      if (!prev[report.id]) {
+        return { ...prev, [report.id]: report.initialComments || [] };
+      }
+      return prev;
+    });
+    setCommentsVisible(true);
+  }, []);
+
+  const handleCloseComments = useCallback(() => {
+    setCommentsVisible(false);
+  }, []);
+
+  const handleAddComment = useCallback(
+    (text: string) => {
+      if (!activeReport) return;
+      const newComment: CommentData = {
+        id: Date.now().toString(),
+        userName: 'Tu',
+        userInitials: 'TU',
+        text,
+        timeAgo: 'Ahora',
+      };
+      setCommentsMap((prev) => ({
+        ...prev,
+        [activeReport.id]: [...(prev[activeReport.id] || []), newComment],
+      }));
+    },
+    [activeReport]
+  );
+
+  const activeComments = activeReport ? commentsMap[activeReport.id] || [] : [];
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 60],
@@ -83,7 +126,19 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* Feed */}
-      <FeedList filter={FILTER_KEYS[activeFilter]} />
+      <FeedList
+        filter={FILTER_KEYS[activeFilter]}
+        onOpenComments={handleOpenComments}
+      />
+
+      {/* Comments Bottom Sheet */}
+      <CommentsSheet
+        visible={commentsVisible}
+        comments={activeComments}
+        reportTitle={activeReport?.title || ''}
+        onClose={handleCloseComments}
+        onAddComment={handleAddComment}
+      />
     </View>
   );
 }

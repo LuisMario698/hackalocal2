@@ -4,6 +4,7 @@ import {
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -21,11 +22,11 @@ const COLORS = {
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   border: '#E8ECF0',
-  overlay: 'rgba(0,0,0,0.45)',
+  overlay: 'rgba(0,0,0,0.5)',
 };
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 function getAvatarColor(name: string): string {
   const greens = ['#1D9E75', '#16a34a', '#15803d', '#0d9488', '#059669', '#047857'];
@@ -52,44 +53,29 @@ export default function CommentsSheet({
   onAddComment,
 }: CommentsSheetProps) {
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
   const [newComment, setNewComment] = useState('');
-  const [isShowing, setIsShowing] = useState(false);
-  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (visible) {
-      setIsShowing(true);
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          friction: 9,
-          tension: 65,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: SHEET_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIsShowing(false);
-      });
+      slideAnim.setValue(SHEET_HEIGHT);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 9,
+        tension: 65,
+        useNativeDriver: true,
+      }).start();
     }
-  }, [visible, slideAnim, overlayOpacity]);
+  }, [visible, slideAnim]);
+
+  const handleClose = () => {
+    Animated.timing(slideAnim, {
+      toValue: SHEET_HEIGHT,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
 
   const handleSend = () => {
     if (!newComment.trim()) return;
@@ -97,151 +83,143 @@ export default function CommentsSheet({
     setNewComment('');
   };
 
-  if (!isShowing && !visible) return null;
-
   return (
-    <View style={styles.fullScreen}>
-      {/* Overlay */}
-      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-        <Pressable style={styles.overlayPress} onPress={onClose} />
-      </Animated.View>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
+      <View style={styles.modalContainer}>
+        {/* Overlay */}
+        <Pressable style={styles.overlay} onPress={handleClose} />
 
-      {/* Sheet */}
-      <Animated.View
-        style={[
-          styles.sheet,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {/* Handle bar */}
-        <View style={styles.handleRow}>
-          <View style={styles.handle} />
-        </View>
-
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Comentarios</Text>
-          <Pressable style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={22} color={COLORS.textPrimary} />
-          </Pressable>
-        </View>
-
-        {/* Report title reference */}
-        <View style={styles.reportRef}>
-          <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLORS.textTertiary} />
-          <Text style={styles.reportRefText} numberOfLines={1}>
-            {reportTitle}
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Comments list */}
-        <FlatList
-          data={comments}
-          keyExtractor={(item) => item.id}
-          style={styles.commentsList}
-          contentContainerStyle={
-            comments.length === 0 ? styles.emptyContainer : styles.commentsContent
-          }
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={48} color={COLORS.border} />
-              <Text style={styles.emptyTitle}>Sin comentarios todavia</Text>
-              <Text style={styles.emptySubtitle}>
-                Se el primero en comentar sobre este reporte
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.commentRow}>
-              <View style={[styles.commentAvatar, { backgroundColor: getAvatarColor(item.userName) }]}>
-                <Text style={styles.commentAvatarText}>{item.userInitials}</Text>
-              </View>
-              <View style={styles.commentBody}>
-                <View style={styles.commentMeta}>
-                  <Text style={styles.commentUserName}>{item.userName}</Text>
-                  <Text style={styles.commentTime}>{item.timeAgo}</Text>
-                </View>
-                <Text style={styles.commentText}>{item.text}</Text>
-                <View style={styles.commentActions}>
-                  <Pressable style={styles.commentAction}>
-                    <Ionicons name="heart-outline" size={14} color={COLORS.textTertiary} />
-                    <Text style={styles.commentActionText}>Me gusta</Text>
-                  </Pressable>
-                  <Pressable style={styles.commentAction}>
-                    <Text style={styles.commentActionText}>Responder</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </View>
-          )}
-        />
-
-        {/* Input bar */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={20}
+        {/* Sheet */}
+        <Animated.View
+          style={[
+            styles.sheet,
+            { transform: [{ translateY: slideAnim }] },
+          ]}
         >
-          <View style={styles.inputBar}>
-            <View style={[styles.inputAvatar, { backgroundColor: COLORS.primary }]}>
-              <Text style={styles.inputAvatarText}>TU</Text>
-            </View>
-            <TextInput
-              ref={inputRef}
-              style={styles.input}
-              placeholder="Agrega un comentario..."
-              placeholderTextColor={COLORS.textTertiary}
-              value={newComment}
-              onChangeText={setNewComment}
-              onSubmitEditing={handleSend}
-              returnKeyType="send"
-              multiline
-              maxLength={500}
-            />
-            <Pressable
-              style={[
-                styles.sendButton,
-                newComment.trim() ? styles.sendButtonActive : {},
-              ]}
-              onPress={handleSend}
-              disabled={!newComment.trim()}
-            >
-              <Ionicons
-                name="send"
-                size={18}
-                color={newComment.trim() ? COLORS.white : COLORS.textTertiary}
-              />
+          {/* Handle bar */}
+          <View style={styles.handleRow}>
+            <View style={styles.handle} />
+          </View>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Comentarios</Text>
+            <Pressable style={styles.closeButton} onPress={handleClose}>
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
-      </Animated.View>
-    </View>
+
+          {/* Report title reference */}
+          <View style={styles.reportRef}>
+            <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLORS.textTertiary} />
+            <Text style={styles.reportRefText} numberOfLines={1}>
+              {reportTitle}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Comments list */}
+          <FlatList
+            data={comments}
+            keyExtractor={(item) => item.id}
+            style={styles.commentsList}
+            contentContainerStyle={
+              comments.length === 0 ? styles.emptyContainer : styles.commentsContent
+            }
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="chatbubbles-outline" size={48} color={COLORS.border} />
+                <Text style={styles.emptyTitle}>Sin comentarios todavia</Text>
+                <Text style={styles.emptySubtitle}>
+                  Se el primero en comentar sobre este reporte
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.commentRow}>
+                <View style={[styles.commentAvatar, { backgroundColor: getAvatarColor(item.userName) }]}>
+                  <Text style={styles.commentAvatarText}>{item.userInitials}</Text>
+                </View>
+                <View style={styles.commentBody}>
+                  <View style={styles.commentMeta}>
+                    <Text style={styles.commentUserName}>{item.userName}</Text>
+                    <Text style={styles.commentTime}>{item.timeAgo}</Text>
+                  </View>
+                  <Text style={styles.commentText}>{item.text}</Text>
+                  <View style={styles.commentActions}>
+                    <Pressable style={styles.commentAction}>
+                      <Ionicons name="heart-outline" size={14} color={COLORS.textTertiary} />
+                      <Text style={styles.commentActionText}>Me gusta</Text>
+                    </Pressable>
+                    <Pressable style={styles.commentAction}>
+                      <Text style={styles.commentActionText}>Responder</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            )}
+          />
+
+          {/* Input bar */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={20}
+          >
+            <View style={styles.inputBar}>
+              <View style={[styles.inputAvatar, { backgroundColor: COLORS.primary }]}>
+                <Text style={styles.inputAvatarText}>TU</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Agrega un comentario..."
+                placeholderTextColor={COLORS.textTertiary}
+                value={newComment}
+                onChangeText={setNewComment}
+                onSubmitEditing={handleSend}
+                returnKeyType="send"
+                multiline
+                maxLength={500}
+              />
+              <Pressable
+                style={[
+                  styles.sendButton,
+                  newComment.trim() ? styles.sendButtonActive : {},
+                ]}
+                onPress={handleSend}
+                disabled={!newComment.trim()}
+              >
+                <Ionicons
+                  name="send"
+                  size={18}
+                  color={newComment.trim() ? COLORS.white : COLORS.textTertiary}
+                />
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  fullScreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999,
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.overlay,
   },
-  overlayPress: {
-    flex: 1,
-  },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     height: SHEET_HEIGHT,
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 20,
