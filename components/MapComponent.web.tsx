@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { UserLocation } from '../hooks/useUserLocation';
 import { ReportMock, ReportCategory } from '../app/(tabs)/map';
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface Props {
   userLocation: UserLocation | null;
@@ -9,17 +10,6 @@ interface Props {
   onSelectReport: (report: ReportMock | null) => void;
   routeCoordinates: {latitude: number; longitude: number}[];
 }
-
-const getEmojiColor = (category: ReportCategory) => {
-  switch (category) {
-    case 'trash': return '🔴';
-    case 'water': return '🔵';
-    case 'wildlife': return '🟠';
-    case 'electronic': return '🟣';
-    case 'organic': return '🟢';
-    default: return '⚪';
-  }
-};
 
 export default function MapComponent({ userLocation, reports, selectedReport, onSelectReport, routeCoordinates }: Props) {
   const { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } = require('react-leaflet');
@@ -81,7 +71,7 @@ export default function MapComponent({ userLocation, reports, selectedReport, on
 
         {userLocation && (
           <Marker position={[userLocation.latitude, userLocation.longitude]}>
-            <Popup>🧑 Tú estás aquí</Popup>
+            <Popup>Tú estás aquí</Popup>
           </Marker>
         )}
 
@@ -128,7 +118,7 @@ export default function MapComponent({ userLocation, reports, selectedReport, on
           justifyContent: 'center'
         }}
       >
-        🎯
+        <MaterialIcons name="my-location" size={24} color="#1F2937" />
       </div>
     </div>
   );

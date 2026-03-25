@@ -23,12 +23,12 @@ const MOCK_REPORTS: ReportMock[] = [
 ];
 
 const CATEGORIES = [
-  { id: 'all', label: '🌍 Todos', color: '#1F2937' },
-  { id: 'trash', label: '🗑️ Basura', color: '#EF4444' },
-  { id: 'water', label: '💧 Agua', color: '#3B82F6' },
-  { id: 'wildlife', label: '🦊 Fauna', color: '#F59E0B' },
-  { id: 'electronic', label: '🔋 Electr.', color: '#8B5CF6' },
-  { id: 'organic', label: '🌱 Orgánico', color: '#10B981' },
+  { id: 'all', label: 'Todos', color: '#1F2937' },
+  { id: 'trash', label: 'Basura', color: '#EF4444' },
+  { id: 'water', label: 'Agua', color: '#3B82F6' },
+  { id: 'wildlife', label: 'Fauna', color: '#F59E0B' },
+  { id: 'electronic', label: 'Electr.', color: '#8B5CF6' },
+  { id: 'organic', label: 'Orgánico', color: '#10B981' },
 ];
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -69,30 +69,47 @@ export default function MapScreen() {
     setRouteCoords([]);
   };
 
+  const [loadingRoute, setLoadingRoute] = useState(false);
+
   const toggleRoute = async () => {
     if (showRoute) {
       setShowRoute(false);
       setRouteCoords([]);
-    } else {
-      setShowRoute(true);
-      if (location && selectedReport) {
-        try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${location.longitude},${location.latitude};${selectedReport.longitude},${selectedReport.latitude}?overview=full&geometries=geojson`;
-          const response = await fetch(url);
-          const data = await response.json();
-          if (data.routes && data.routes[0]) {
-             const coords = data.routes[0].geometry.coordinates.map((coord: number[]) => ({
-                latitude: coord[1], 
-                longitude: coord[0]
-             }));
-             setRouteCoords(coords);
-          } else {
-             setRouteCoords([{latitude: location.latitude, longitude: location.longitude}, {latitude: selectedReport.latitude, longitude: selectedReport.longitude}]);
-          }
-        } catch (e) {
-          setRouteCoords([{latitude: location.latitude, longitude: location.longitude}, {latitude: selectedReport.latitude, longitude: selectedReport.longitude}]);
-        }
+      return;
+    }
+
+    if (!location || !selectedReport) return;
+
+    setShowRoute(true);
+    setLoadingRoute(true);
+
+    const fallback = [
+      { latitude: location.latitude, longitude: location.longitude },
+      { latitude: selectedReport.latitude, longitude: selectedReport.longitude },
+    ];
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const url = `https://router.project-osrm.org/route/v1/driving/${location.longitude},${location.latitude};${selectedReport.longitude},${selectedReport.latitude}?overview=full&geometries=geojson`;
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      if (data.routes && data.routes[0]) {
+        const coords = data.routes[0].geometry.coordinates.map((coord: number[]) => ({
+          latitude: coord[1],
+          longitude: coord[0],
+        }));
+        setRouteCoords(coords);
+      } else {
+        setRouteCoords(fallback);
       }
+    } catch (e) {
+      setRouteCoords(fallback);
+    } finally {
+      setLoadingRoute(false);
     }
   };
 
@@ -177,13 +194,13 @@ export default function MapScreen() {
             <Text style={styles.calcText}>Calculando tu ubicación...</Text>
           )}
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.routeButton, showRoute && styles.routeButtonActive]}
             onPress={toggleRoute}
-            disabled={!location}
+            disabled={!location || loadingRoute}
           >
             <Text style={styles.routeButtonText}>
-              {showRoute ? 'Ocultar Ruta' : 'Trazar Ruta en el Mapa'}
+              {loadingRoute ? 'Calculando ruta...' : showRoute ? 'Ocultar Ruta' : 'Trazar Ruta en el Mapa'}
             </Text>
           </TouchableOpacity>
         </View>
