@@ -4,7 +4,7 @@
 ## Responsabilidades Principales
 1. **Flujo de Creación de Reportes**
    - Armar la interfaz visual completa para crear un "Nuevo Reporte".
-   - Unir las piezas conectando la lógica del GPS (Mario), el analizador de IA (Mario) y enviando el paquete final usando la BD (Gordo).
+   - Unir las piezas conectando la lógica del GPS (Mario) y enviando el paquete final usando la BD (Gordo).
 2. **Ecosistema de Gamificación**
    - Tabular y diseñar la entrega de medallas/puntos y rangos avanzados ("Eco-Héroe", "Eco-Ciudadano") no solo por emitir un reporte, sino por _acciones_.
    - Asignar Eco-Puntos a los usuarios que completan tareas difíciles.
