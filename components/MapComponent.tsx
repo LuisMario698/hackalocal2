@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { MaterialIcons } from '@expo/vector-icons';
 import { UserLocation } from '../hooks/useUserLocation';
 import { ReportMock, ReportCategory } from '../app/(tabs)/map';
 
@@ -98,7 +99,7 @@ export default function MapComponent({ userLocation, reports, selectedReport, on
       </MapView>
 
       <TouchableOpacity style={styles.myLocationButton} onPress={handleCenterUser}>
-        <Text style={{ fontSize: 24 }}>🎯</Text>
+        <MaterialIcons name="my-location" size={24} color="#1F2937" />
       </TouchableOpacity>
     </View>
   );
