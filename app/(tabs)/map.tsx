@@ -35,22 +35,43 @@ function WebMap() {
   );
 }
 
+function NativeMap() {
+  const Maps = require('react-native-maps');
+  const MapView = Maps.default;
+  const Marker = Maps.Marker;
+  const PUERTO_PENASCO = { lat: 31.3182, lng: -113.5348 };
+
+  return (
+    <MapView
+      style={{ flex: 1, width: '100%', height: '100%' }}
+      initialRegion={{
+        latitude: PUERTO_PENASCO.lat,
+        longitude: PUERTO_PENASCO.lng,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      }}
+    >
+      <Marker
+        coordinate={{ latitude: PUERTO_PENASCO.lat, longitude: PUERTO_PENASCO.lng }}
+        title="Puerto Peñasco"
+        description="Sonora, México"
+      />
+    </MapView>
+  );
+}
+
 export default function MapScreen() {
-  if (Platform.OS !== 'web') {
+  if (Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Mapa no disponible</Text>
-        <Text style={styles.subtitle}>
-          react-leaflet solo funciona en web.{'\n'}
-          Para móvil se necesita react-native-maps.
-        </Text>
+      <View style={styles.mapContainer}>
+        <WebMap />
       </View>
     );
   }
 
   return (
     <View style={styles.mapContainer}>
-      <WebMap />
+      <NativeMap />
     </View>
   );
 }
