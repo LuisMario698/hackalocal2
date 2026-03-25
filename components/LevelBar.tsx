@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { getUserLevel, getLevelProgress, getNextLevel } from '../constants/Gamification';
 
@@ -14,7 +15,9 @@ export default function LevelBar({ points }: LevelBarProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.levelIcon}>{level.icon}</Text>
+        <View style={styles.levelIconWrap}>
+          <Ionicons name={level.icon as any} size={26} color={Colors.primary} />
+        </View>
         <View style={styles.info}>
           <Text style={styles.levelName}>{level.name}</Text>
           <Text style={styles.levelNumber}>Nivel {level.level}</Text>
@@ -26,11 +29,11 @@ export default function LevelBar({ points }: LevelBarProps) {
       </View>
       {next && (
         <Text style={styles.nextLabel}>
-          {next.minPoints - points} pts para {next.name} {next.icon}
+          {next.minPoints - points} pts para {next.name}
         </Text>
       )}
       {!next && (
-        <Text style={styles.nextLabel}>¡Nivel máximo alcanzado! 🎉</Text>
+        <Text style={styles.nextLabel}>Nivel maximo alcanzado</Text>
       )}
     </View>
   );
@@ -53,8 +56,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  levelIcon: {
-    fontSize: 32,
+  levelIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   info: {

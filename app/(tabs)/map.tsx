@@ -32,15 +32,87 @@ const CATEGORIES = [
 ];
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; 
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Decodifica polyline6 (formato de Valhalla)
+function decodePolyline6(encoded: string): { latitude: number; longitude: number }[] {
+  const coords: { latitude: number; longitude: number }[] = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+    coords.push({ latitude: lat / 1e6, longitude: lng / 1e6 });
+  }
+  return coords;
+}
+
+type RouteResult = {
+  coords: { latitude: number; longitude: number }[];
+  distanceKm: number;
+  durationMins: number;
+};
+
+async function fetchStreetRoute(
+  fromLat: number, fromLng: number,
+  toLat: number, toLng: number,
+  signal: AbortSignal
+): Promise<RouteResult | null> {
+  const seg = `${fromLng},${fromLat};${toLng},${toLat}`;
+  const qs = '?overview=full&geometries=geojson';
+
+  const osrm = (base: string) =>
+    fetch(`${base}${seg}${qs}`, { signal })
+      .then(r => r.json())
+      .then((d): RouteResult => {
+        if (!d.routes?.[0]) throw new Error('empty');
+        const r = d.routes[0];
+        return {
+          coords: r.geometry.coordinates.map((c: number[]) => ({ latitude: c[1], longitude: c[0] })),
+          distanceKm: r.distance / 1000,
+          durationMins: Math.max(1, Math.round(r.duration / 60)),
+        };
+      });
+
+  const valhalla = fetch('https://valhalla1.openstreetmap.de/route', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal,
+    body: JSON.stringify({
+      locations: [{ lon: fromLng, lat: fromLat }, { lon: toLng, lat: toLat }],
+      costing: 'auto',
+      directions_type: 'none',
+      units: 'kilometers',
+    }),
+  }).then(r => r.json()).then((d): RouteResult => {
+    if (!d.trip?.legs?.[0]?.shape) throw new Error('empty');
+    return {
+      coords: decodePolyline6(d.trip.legs[0].shape),
+      distanceKm: d.trip.summary.length,
+      durationMins: Math.max(1, Math.round(d.trip.summary.time / 60)),
+    };
+  });
+
+  try {
+    return await Promise.any([
+      osrm('https://router.project-osrm.org/route/v1/driving/'),
+      osrm('https://routing.openstreetmap.de/routed-car/route/v1/driving/'),
+      valhalla,
+    ]);
+  } catch {
+    return null;
+  }
 }
 
 export default function MapScreen() {
@@ -70,11 +142,13 @@ export default function MapScreen() {
   };
 
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ distanceKm: number; durationMins: number } | null>(null);
 
   const toggleRoute = async () => {
     if (showRoute) {
       setShowRoute(false);
       setRouteCoords([]);
+      setRouteInfo(null);
       return;
     }
 
@@ -83,44 +157,39 @@ export default function MapScreen() {
     setShowRoute(true);
     setLoadingRoute(true);
 
-    const fallback = [
+    const fallbackCoords = [
       { latitude: location.latitude, longitude: location.longitude },
       { latitude: selectedReport.latitude, longitude: selectedReport.longitude },
     ];
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const url = `https://router.project-osrm.org/route/v1/driving/${location.longitude},${location.latitude};${selectedReport.longitude},${selectedReport.latitude}?overview=full&geometries=geojson`;
-      const response = await fetch(url, { signal: controller.signal });
+      const result = await fetchStreetRoute(
+        location.latitude, location.longitude,
+        selectedReport.latitude, selectedReport.longitude,
+        controller.signal
+      );
       clearTimeout(timeoutId);
 
-      const data = await response.json();
-      if (data.routes && data.routes[0]) {
-        const coords = data.routes[0].geometry.coordinates.map((coord: number[]) => ({
-          latitude: coord[1],
-          longitude: coord[0],
-        }));
-        setRouteCoords(coords);
+      if (result) {
+        setRouteCoords(result.coords);
+        setRouteInfo({ distanceKm: result.distanceKm, durationMins: result.durationMins });
       } else {
-        setRouteCoords(fallback);
+        // Solo llega aquí si los 3 servidores fallan
+        const straightKm = calculateDistance(location.latitude, location.longitude, selectedReport.latitude, selectedReport.longitude);
+        setRouteCoords(fallbackCoords);
+        setRouteInfo({ distanceKm: straightKm, durationMins: Math.max(1, Math.round((straightKm / 40) * 60)) });
       }
     } catch (e) {
-      setRouteCoords(fallback);
+      const straightKm = calculateDistance(location.latitude, location.longitude, selectedReport.latitude, selectedReport.longitude);
+      setRouteCoords(fallbackCoords);
+      setRouteInfo({ distanceKm: straightKm, durationMins: Math.max(1, Math.round((straightKm / 40) * 60)) });
     } finally {
       setLoadingRoute(false);
     }
   };
-
-  let distanceKm = 0;
-  let timeMins = 0;
-
-  if (selectedReport && location) {
-    distanceKm = calculateDistance(location.latitude, location.longitude, selectedReport.latitude, selectedReport.longitude);
-    timeMins = Math.round((distanceKm / 40) * 60); 
-    if (timeMins < 1) timeMins = 1;
-  }
 
   if (errorMsg) {
     return (
@@ -167,42 +236,53 @@ export default function MapScreen() {
       />
 
       {selectedReport && (
-        <View style={[styles.bottomCard, { bottom: 120 }]} pointerEvents="box-none">
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardTitle}>{selectedReport.title}</Text>
-              <Text style={styles.cardCategory}>Categoría: {CATEGORIES.find(c => c.id === selectedReport.category)?.label}</Text>
-            </View>
-            <TouchableOpacity style={styles.closeButton} onPress={() => handleSelectReport(null)}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {location ? (
-            <View style={styles.metricsContainer}>
-              <View style={styles.metricBox}>
-                <Text style={styles.metricLabel}>Distancia</Text>
-                <Text style={styles.metricValue}>{distanceKm.toFixed(2)} km</Text>
-              </View>
-              <View style={styles.metricSeparator} />
-              <View style={styles.metricBox}>
-                <Text style={styles.metricLabel}>Tiempo Est. (Auto)</Text>
-                <Text style={styles.metricValue}>{timeMins} min</Text>
+        <View style={styles.cardsStack} pointerEvents="box-none">
+          {showRoute && routeInfo && (
+            <View style={styles.routeInfoCard}>
+              <View style={styles.routeInfoRow}>
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>Por carretera</Text>
+                  <Text style={styles.routeInfoValue}>{routeInfo.distanceKm.toFixed(2)} km</Text>
+                </View>
+                <View style={styles.routeInfoDivider} />
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>En auto</Text>
+                  <Text style={styles.routeInfoValue}>{routeInfo.durationMins} min</Text>
+                </View>
+                <View style={styles.routeInfoDivider} />
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>Caminando</Text>
+                  <Text style={styles.routeInfoValue}>{Math.max(1, Math.round(routeInfo.durationMins * 8))} min</Text>
+                </View>
               </View>
             </View>
-          ) : (
-            <Text style={styles.calcText}>Calculando tu ubicación...</Text>
           )}
 
-          <TouchableOpacity
-            style={[styles.routeButton, showRoute && styles.routeButtonActive]}
-            onPress={toggleRoute}
-            disabled={!location || loadingRoute}
-          >
-            <Text style={styles.routeButtonText}>
-              {loadingRoute ? 'Calculando ruta...' : showRoute ? 'Ocultar Ruta' : 'Trazar Ruta en el Mapa'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.bottomCard}>
+            <View style={styles.cardHeader}>
+              <View>
+                <Text style={styles.cardTitle}>{selectedReport.title}</Text>
+                <Text style={styles.cardCategory}>Categoría: {CATEGORIES.find(c => c.id === selectedReport.category)?.label}</Text>
+              </View>
+              <TouchableOpacity style={styles.closeButton} onPress={() => handleSelectReport(null)}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {!location && (
+              <Text style={styles.calcText}>Calculando tu ubicación...</Text>
+            )}
+
+            <TouchableOpacity
+              style={[styles.routeButton, showRoute && styles.routeButtonActive]}
+              onPress={toggleRoute}
+              disabled={!location || loadingRoute}
+            >
+              <Text style={styles.routeButtonText}>
+                {loadingRoute ? 'Calculando ruta...' : showRoute ? 'Ocultar Ruta' : 'Trazar Ruta en el Mapa'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -247,9 +327,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   bottomCard: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
@@ -336,5 +413,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold'
-  }
+  },
+  cardsStack: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 120,
+    zIndex: 999,
+    gap: 10,
+  },
+  routeInfoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  routeInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 16,
+  },
+  routeInfoItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  routeInfoDivider: {
+    width: 1,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'stretch',
+  },
+  routeInfoLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  routeInfoValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
 });
