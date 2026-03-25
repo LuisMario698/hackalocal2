@@ -129,7 +129,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           };
 
           const meta = getTabMeta(route.name);
-          const tint = isFocused ? '#2f2acb' : '#101113';
+          const tint = isFocused ? '#1D9E75' : '#101113';
           const a11yLabel = options.tabBarAccessibilityLabel;
 
           return (
