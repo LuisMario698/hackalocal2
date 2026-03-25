@@ -87,9 +87,10 @@ function getAvatarColor(name: string): string {
 interface FeedCardProps {
   report: ReportData;
   onOpenComments: (report: ReportData) => void;
+  onPress: (report: ReportData) => void;
 }
 
-export default function FeedCard({ report, onOpenComments }: FeedCardProps) {
+export default function FeedCard({ report, onOpenComments, onPress }: FeedCardProps) {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(report.likesCount);
   const [shared, setShared] = useState(false);
@@ -132,7 +133,7 @@ export default function FeedCard({ report, onOpenComments }: FeedCardProps) {
   const commentsCount = report.initialComments?.length ?? report.commentsCount;
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => onPress(report)}>
       {/* Header */}
       <View style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
@@ -262,7 +263,7 @@ export default function FeedCard({ report, onOpenComments }: FeedCardProps) {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

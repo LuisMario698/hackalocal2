@@ -250,9 +250,12 @@ const MOCK_REPORTS: ReportData[] = [
 interface FeedListProps {
   filter: string;
   onOpenComments: (report: ReportData) => void;
+  onPressReport: (report: ReportData) => void;
 }
 
-export default function FeedList({ filter, onOpenComments }: FeedListProps) {
+export { MOCK_REPORTS };
+
+export default function FeedList({ filter, onOpenComments, onPressReport }: FeedListProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
@@ -284,9 +287,9 @@ export default function FeedList({ filter, onOpenComments }: FeedListProps) {
 
   const renderItem = useCallback(
     ({ item }: { item: ReportData }) => (
-      <FeedCard report={item} onOpenComments={onOpenComments} />
+      <FeedCard report={item} onOpenComments={onOpenComments} onPress={onPressReport} />
     ),
-    [onOpenComments]
+    [onOpenComments, onPressReport]
   );
 
   const keyExtractor = useCallback((item: ReportData) => item.id, []);

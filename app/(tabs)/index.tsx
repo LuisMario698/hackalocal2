@@ -9,8 +9,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FeedList from '../../components/feed/FeedList';
+import FeedList, { MOCK_REPORTS } from '../../components/feed/FeedList';
 import CommentsSheet from '../../components/feed/CommentsSheet';
+import ReportDetail from '../../components/feed/ReportDetail';
+import SearchSheet from '../../components/feed/SearchSheet';
+import NotificationsSheet from '../../components/feed/NotificationsSheet';
 import { CommentData, ReportData } from '../../components/feed/FeedCard';
 
 const PRIMARY = '#1D9E75';
@@ -24,12 +27,24 @@ export default function HomeScreen() {
 
   // Comments sheet state
   const [commentsVisible, setCommentsVisible] = useState(false);
-  const [activeReport, setActiveReport] = useState<ReportData | null>(null);
+  const [commentsReport, setCommentsReport] = useState<ReportData | null>(null);
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentData[]>>({});
 
+  // Report detail state
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailReport, setDetailReport] = useState<ReportData | null>(null);
+  const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
+  const [likesMap, setLikesMap] = useState<Record<string, number>>({});
+
+  // Search state
+  const [searchVisible, setSearchVisible] = useState(false);
+
+  // Notifications state
+  const [notifsVisible, setNotifsVisible] = useState(false);
+
+  // -- Comments handlers --
   const handleOpenComments = useCallback((report: ReportData) => {
-    setActiveReport(report);
-    // Initialize comments from mock data if not yet in map
+    setCommentsReport(report);
     setCommentsMap((prev) => {
       if (!prev[report.id]) {
         return { ...prev, [report.id]: report.initialComments || [] };
@@ -45,7 +60,7 @@ export default function HomeScreen() {
 
   const handleAddComment = useCallback(
     (text: string) => {
-      if (!activeReport) return;
+      if (!commentsReport) return;
       const newComment: CommentData = {
         id: Date.now().toString(),
         userName: 'Tu',
@@ -55,13 +70,72 @@ export default function HomeScreen() {
       };
       setCommentsMap((prev) => ({
         ...prev,
-        [activeReport.id]: [...(prev[activeReport.id] || []), newComment],
+        [commentsReport.id]: [...(prev[commentsReport.id] || []), newComment],
       }));
     },
-    [activeReport]
+    [commentsReport]
   );
 
-  const activeComments = activeReport ? commentsMap[activeReport.id] || [] : [];
+  // -- Detail handlers --
+  const handlePressReport = useCallback((report: ReportData) => {
+    setDetailReport(report);
+    setCommentsMap((prev) => {
+      if (!prev[report.id]) {
+        return { ...prev, [report.id]: report.initialComments || [] };
+      }
+      return prev;
+    });
+    if (likesMap[report.id] === undefined) {
+      setLikesMap((prev) => ({ ...prev, [report.id]: report.likesCount }));
+    }
+    setDetailVisible(true);
+  }, [likesMap]);
+
+  const handleCloseDetail = useCallback(() => {
+    setDetailVisible(false);
+  }, []);
+
+  const handleDetailLike = useCallback(() => {
+    if (!detailReport) return;
+    const id = detailReport.id;
+    setLikedMap((prev) => {
+      const wasLiked = prev[id] || false;
+      setLikesMap((lp) => ({
+        ...lp,
+        [id]: (lp[id] ?? detailReport.likesCount) + (wasLiked ? -1 : 1),
+      }));
+      return { ...prev, [id]: !wasLiked };
+    });
+  }, [detailReport]);
+
+  const handleDetailAddComment = useCallback(
+    (text: string) => {
+      if (!detailReport) return;
+      const newComment: CommentData = {
+        id: Date.now().toString(),
+        userName: 'Tu',
+        userInitials: 'TU',
+        text,
+        timeAgo: 'Ahora',
+      };
+      setCommentsMap((prev) => ({
+        ...prev,
+        [detailReport.id]: [...(prev[detailReport.id] || []), newComment],
+      }));
+    },
+    [detailReport]
+  );
+
+  // -- Search handler --
+  const handleSearchSelect = useCallback((report: ReportData) => {
+    setSearchVisible(false);
+    setTimeout(() => {
+      handlePressReport(report);
+    }, 300);
+  }, [handlePressReport]);
+
+  const activeComments = commentsReport ? commentsMap[commentsReport.id] || [] : [];
+  const detailComments = detailReport ? commentsMap[detailReport.id] || [] : [];
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 60],
@@ -84,10 +158,10 @@ export default function HomeScreen() {
             <Text style={styles.headerSubtitle}>Feed de la comunidad</Text>
           </View>
           <View style={styles.headerActions}>
-            <Pressable style={styles.iconButton}>
+            <Pressable style={styles.iconButton} onPress={() => setSearchVisible(true)}>
               <Ionicons name="search-outline" size={22} color="#1A1D21" />
             </Pressable>
-            <Pressable style={styles.iconButton}>
+            <Pressable style={styles.iconButton} onPress={() => setNotifsVisible(true)}>
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeText}>3</Text>
               </View>
@@ -129,15 +203,46 @@ export default function HomeScreen() {
       <FeedList
         filter={FILTER_KEYS[activeFilter]}
         onOpenComments={handleOpenComments}
+        onPressReport={handlePressReport}
       />
 
       {/* Comments Bottom Sheet */}
       <CommentsSheet
         visible={commentsVisible}
         comments={activeComments}
-        reportTitle={activeReport?.title || ''}
+        reportTitle={commentsReport?.title || ''}
         onClose={handleCloseComments}
         onAddComment={handleAddComment}
+      />
+
+      {/* Report Detail */}
+      <ReportDetail
+        visible={detailVisible}
+        report={detailReport}
+        comments={detailComments}
+        onClose={handleCloseDetail}
+        onAddComment={handleDetailAddComment}
+        onLikeToggle={handleDetailLike}
+        liked={detailReport ? likedMap[detailReport.id] || false : false}
+        likesCount={
+          detailReport
+            ? likesMap[detailReport.id] ?? detailReport.likesCount
+            : 0
+        }
+      />
+
+      {/* Search */}
+      <SearchSheet
+        visible={searchVisible}
+        reports={MOCK_REPORTS}
+        onClose={() => setSearchVisible(false)}
+        onSelectReport={handleSearchSelect}
+      />
+
+      {/* Notifications */}
+      <NotificationsSheet
+        visible={notifsVisible}
+        onClose={() => setNotifsVisible(false)}
       />
     </View>
   );

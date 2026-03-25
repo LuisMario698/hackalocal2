@@ -3,7 +3,7 @@ import {
   Animated,
   Dimensions,
   FlatList,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CommentData } from './FeedCard';
 
 const COLORS = {
@@ -53,7 +54,35 @@ export default function CommentsSheet({
   onAddComment,
 }: CommentsSheetProps) {
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const keyboardPadding = useRef(new Animated.Value(0)).current;
   const [newComment, setNewComment] = useState('');
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardPadding, {
+        toValue: e.endCoordinates.height,
+        duration: Platform.OS === 'ios' ? 250 : 150,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      Animated.timing(keyboardPadding, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? 200 : 100,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, [keyboardPadding]);
 
   useEffect(() => {
     if (visible) {
@@ -99,7 +128,7 @@ export default function CommentsSheet({
         <Animated.View
           style={[
             styles.sheet,
-            { transform: [{ translateY: slideAnim }] },
+            { paddingBottom: Math.max(insets.bottom, 8), transform: [{ translateY: slideAnim }] },
           ]}
         >
           {/* Handle bar */}
@@ -169,10 +198,6 @@ export default function CommentsSheet({
           />
 
           {/* Input bar */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={20}
-          >
             <View style={styles.inputBar}>
               <View style={[styles.inputAvatar, { backgroundColor: COLORS.primary }]}>
                 <Text style={styles.inputAvatarText}>TU</Text>
@@ -203,7 +228,9 @@ export default function CommentsSheet({
                 />
               </Pressable>
             </View>
-          </KeyboardAvoidingView>
+
+          {/* Keyboard spacer */}
+          <Animated.View style={{ height: keyboardPadding }} />
         </Animated.View>
       </View>
     </Modal>
