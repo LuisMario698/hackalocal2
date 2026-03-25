@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -48,6 +50,14 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'Resuelto',
 };
 
+export interface CommentData {
+  id: string;
+  userName: string;
+  userInitials: string;
+  text: string;
+  timeAgo: string;
+}
+
 export interface ReportData {
   id: string;
   userName: string;
@@ -62,6 +72,7 @@ export interface ReportData {
   likesCount: number;
   commentsCount: number;
   severity: number;
+  initialComments?: CommentData[];
 }
 
 function getAvatarColor(name: string): string {
@@ -73,18 +84,52 @@ function getAvatarColor(name: string): string {
   return greens[Math.abs(hash) % greens.length];
 }
 
-export default function FeedCard({ report }: { report: ReportData }) {
+interface FeedCardProps {
+  report: ReportData;
+  onOpenComments: (report: ReportData) => void;
+}
+
+export default function FeedCard({ report, onOpenComments }: FeedCardProps) {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(report.likesCount);
+  const [shared, setShared] = useState(false);
 
   const handleLike = () => {
     setLiked(!liked);
     setLikesCount(liked ? likesCount - 1 : likesCount + 1);
   };
 
+  const handleShare = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        if (navigator.share) {
+          await navigator.share({
+            title: report.title,
+            text: `${report.title} - ${report.description}`,
+            url: window.location.href,
+          });
+        } else {
+          await navigator.clipboard.writeText(
+            `${report.title}\n${report.description}\n\nReportado en Social Clean`
+          );
+          setShared(true);
+          setTimeout(() => setShared(false), 2000);
+        }
+      } else {
+        await Share.share({
+          title: report.title,
+          message: `${report.title}\n${report.description}\n\nReportado por ${report.userName} en Social Clean`,
+        });
+      }
+    } catch {
+      // user cancelled share
+    }
+  };
+
   const categoryColor = COLORS.category[report.category] || COLORS.category.other;
   const statusStyle = COLORS.status[report.status] || COLORS.status.pending;
   const avatarBg = getAvatarColor(report.userName);
+  const commentsCount = report.initialComments?.length ?? report.commentsCount;
 
   return (
     <View style={styles.card}>
@@ -177,25 +222,37 @@ export default function FeedCard({ report }: { report: ReportData }) {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Pressable style={styles.actionButton} onPress={handleLike}>
+        <Pressable
+          style={[styles.actionButton, liked && styles.actionButtonActive]}
+          onPress={handleLike}
+        >
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={22}
             color={liked ? '#E24B4A' : COLORS.textSecondary}
           />
-          <Text style={[styles.actionText, liked && { color: '#E24B4A' }]}>
+          <Text style={[styles.actionText, liked && { color: '#E24B4A', fontWeight: '700' }]}>
             {likesCount}
           </Text>
         </Pressable>
 
-        <Pressable style={styles.actionButton}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => onOpenComments(report)}
+        >
           <Ionicons name="chatbubble-outline" size={20} color={COLORS.textSecondary} />
-          <Text style={styles.actionText}>{report.commentsCount}</Text>
+          <Text style={styles.actionText}>{commentsCount}</Text>
         </Pressable>
 
-        <Pressable style={styles.actionButton}>
-          <Ionicons name="share-social-outline" size={20} color={COLORS.textSecondary} />
-          <Text style={styles.actionText}>Compartir</Text>
+        <Pressable style={styles.actionButton} onPress={handleShare}>
+          <Ionicons
+            name={shared ? 'checkmark-circle' : 'share-social-outline'}
+            size={20}
+            color={shared ? COLORS.primary : COLORS.textSecondary}
+          />
+          <Text style={[styles.actionText, shared && { color: COLORS.primary }]}>
+            {shared ? 'Copiado' : 'Compartir'}
+          </Text>
         </Pressable>
 
         <Pressable style={[styles.actionButton, styles.joinButton]}>
@@ -319,9 +376,10 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 200,
+    height: 220,
     borderRadius: 12,
     marginBottom: 10,
+    backgroundColor: '#E8ECF0',
   },
   imagePlaceholder: {
     width: '100%',
@@ -369,6 +427,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 20,
     gap: 5,
+  },
+  actionButtonActive: {
+    backgroundColor: '#F3F4F6',
   },
   actionText: {
     fontSize: 13,
