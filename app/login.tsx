@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Image,
 } from 'react-native';
 import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,9 +76,10 @@ export default function LoginScreen() {
     >
       {/* Logo area */}
       <View style={s.logoArea}>
-        <View style={s.logoCircle}>
-          <Ionicons name="leaf" size={48} color="#fff" />
-        </View>
+        <Image 
+          source={require('../assets/logo.png')} 
+          style={s.logoImage} 
+        />
         <Text style={s.appName}>Social Clean</Text>
         <Text style={s.subtitle}>
           {mode === 'login' ? 'Inicio de sesion' : 'Crear cuenta'}
@@ -198,19 +200,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  logoCircle: {
+  logoImage: {
     width: 90,
     height: 90,
-    borderRadius: 45,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 22,
     marginBottom: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
   },
   appName: {
     fontSize: 30,
