@@ -8,6 +8,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;
+  image_url?: string;
 }
 
 interface UseChatOptions {
@@ -22,7 +23,7 @@ export function useChat({ userId, userRole }: UseChatOptions) {
   const [error, setError] = useState<string | null>(null);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, imageUrl?: string) => {
       if (!text.trim() || isLoading) return;
 
       const userMsg: ChatMessage = {
@@ -30,6 +31,7 @@ export function useChat({ userId, userRole }: UseChatOptions) {
         role: 'user',
         content: text.trim(),
         createdAt: new Date().toISOString(),
+        image_url: imageUrl,
       };
 
       setMessages((prev) => [...prev, userMsg]);
@@ -47,6 +49,7 @@ export function useChat({ userId, userRole }: UseChatOptions) {
           body: JSON.stringify({
             conversation_id: conversationId,
             message: text.trim(),
+            image_url: imageUrl,
             user_role: userRole,
             user_id: userId,
           }),

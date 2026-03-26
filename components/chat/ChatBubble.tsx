@@ -1,14 +1,15 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Image } from 'react-native';
 import Text from '../ScaledText';
 import { Colors } from '../../constants/Colors';
 
 interface ChatBubbleProps {
   role: 'user' | 'assistant';
   content: string;
+  imageUrl?: string;
 }
 
-export default function ChatBubble({ role, content }: ChatBubbleProps) {
+export default function ChatBubble({ role, content, imageUrl }: ChatBubbleProps) {
   const isUser = role === 'user';
 
   return (
@@ -19,6 +20,9 @@ export default function ChatBubble({ role, content }: ChatBubbleProps) {
         </View>
       )}
       <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
+        {imageUrl && (
+          <Image source={{ uri: imageUrl }} style={styles.bubbleImage} />
+        )}
         <Text style={[styles.text, isUser && styles.textUser]}>{content}</Text>
       </View>
     </View>
@@ -64,6 +68,12 @@ const styles = StyleSheet.create({
   bubbleAssistant: {
     backgroundColor: '#F0F2F5',
     borderBottomLeftRadius: 4,
+  },
+  bubbleImage: {
+    width: 180,
+    height: 180,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   text: {
     fontSize: 15,
