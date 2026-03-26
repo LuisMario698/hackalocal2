@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MapHighlightProvider } from '../contexts/MapHighlightContext';
 import { FontSizeProvider } from '../contexts/FontSizeContext';
+import { AuthProvider } from '../contexts/AuthContext';
 
 function AIChatFAB() {
   const router = useRouter();
@@ -30,10 +31,13 @@ export default function RootLayout() {
     <FontSizeProvider>
     <MapHighlightProvider>
       <View style={{ flex: 1 }}>
-        <Stack>
+        <Stack initialRouteName="index">
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="account" options={{ headerShown: false }} />
+          <Stack.Screen name="verifier" options={{ headerShown: false }} />
           <Stack.Screen
             name="chat"
             options={{

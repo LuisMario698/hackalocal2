@@ -60,6 +60,15 @@ function getTabMeta(routeName: string) {
     };
   }
 
+  if (routeName === 'verify') {
+    return {
+      label: 'Verificar',
+      icon: (color: string, size: number) => (
+        <Ionicons name="shield-checkmark" size={size} color={color} />
+      ),
+    };
+  }
+
   return {
     label: routeName,
     icon: (color: string, size: number) => (
@@ -81,10 +90,11 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const visibleIndex = visibleRoutes.findIndex((r) => r.key === state.routes[state.index]?.key);
   const activeIndex = visibleIndex >= 0 ? visibleIndex : 0;
 
-  const barSideMargin = 16; // reduced from 32 to give more width to the tabs
+  const barSideMargin = 16;
   const innerPadding = 6;
-  const barWidth = Math.min(420, Math.max(300, width - barSideMargin * 2));
-  const segmentWidth = (barWidth - innerPadding * 2) / state.routes.length;
+  const tabCount = visibleRoutes.length;
+  const barWidth = Math.min(tabCount > 5 ? 440 : 420, Math.max(300, width - barSideMargin * 2));
+  const segmentWidth = (barWidth - innerPadding * 2) / tabCount;
 
   const translateX = useRef(new Animated.Value(activeIndex * segmentWidth)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
@@ -213,6 +223,13 @@ export default function TabLayout() {
         name="aprende"
         options={{
           title: 'Aprende',
+        }}
+      />
+      <Tabs.Screen
+        name="verify"
+        options={{
+          title: 'Verificar',
+          href: isVerifier ? ('/verify' as any) : null,
         }}
       />
       <Tabs.Screen
