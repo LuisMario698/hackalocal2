@@ -152,18 +152,40 @@ export default function ProfileScreen() {
     }
   }, [user]);
 
-  // Fetch user badges from DB
+  // Fetch user badges from DB + compute locally from profile stats
   const fetchBadges = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('user_badges')
-      .select('badge_id, badges(name)')
-      .eq('user_id', user.id) as any;
+    const unlocked = new Set<string>();
 
-    if (data && data.length > 0) {
-      setUnlockedBadgeIds(data.map((row: any) => row.badges?.name ?? row.badge_id));
+    // 1) Check from DB (user_badges table)
+    if (user) {
+      const { data } = await supabase
+        .from('user_badges')
+        .select('badge_id, badges(name)')
+        .eq('user_id', user.id) as any;
+
+      if (data && data.length > 0) {
+        for (const row of data) {
+          const dbName: string = row.badges?.name ?? '';
+          // Match DB badge name → BADGES constant id
+          const match = BADGES.find(b => b.name === dbName);
+          if (match) unlocked.add(match.id);
+        }
+      }
     }
-  }, [user]);
+
+    // 2) Local fallback: compute from profile stats so badges light up even if DB function hasn't run
+    if (profile) {
+      if ((profile.reports_count ?? 0) >= 1) unlocked.add('first_report');
+      if ((profile.tasks_completed ?? 0) >= 1) unlocked.add('cleaner_novice');
+      if ((profile.tasks_completed ?? 0) >= 5) unlocked.add('five_stars');
+      if ((profile.streak_days ?? 0) >= 7) unlocked.add('weekly_streak');
+      if ((profile.tasks_completed ?? 0) >= 10) unlocked.add('beach_guardian');
+      if ((profile.eco_points ?? 0) >= 500) unlocked.add('top_10');
+      if (getUserLevel(profile.eco_points ?? 0).level >= 5) unlocked.add('eco_hero');
+    }
+
+    setUnlockedBadgeIds(Array.from(unlocked));
+  }, [user, profile]);
 
   useEffect(() => {
     fetchLeaderboard();
