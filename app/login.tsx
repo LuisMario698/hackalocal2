@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -15,36 +16,55 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
 
+type Mode = 'login' | 'register';
+
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
+  const { signIn, signUp, skipLogin } = useAuth();
+
+  const [mode, setMode] = useState<Mode>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const { setIsVerifier, setIsAdmin } = useAuth();
+  const [busy, setBusy] = useState(false);
 
-  const handleLogin = () => {
-    const u = user.trim().toLowerCase();
-    const p = pass.trim().toLowerCase();
+  const canSubmit = mode === 'login'
+    ? email.trim() && password.trim()
+    : email.trim() && password.trim() && name.trim();
 
-    if (u === 'filtro' && p === 'filtro') {
-      setIsVerifier(true);
-      router.replace('/(tabs)' as any);
-    } else if (u === 'admin' && p === 'admin') {
-      setIsAdmin(true);
-      router.replace('/admin' as any);
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setBusy(true);
+
+    let error: string | null;
+    if (mode === 'login') {
+      error = await signIn(email.trim(), password.trim());
     } else {
-      Alert.alert('Credenciales incorrectas', 'Usuario o contraseña invalidos');
+      if (password.trim().length < 6) {
+        Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+        setBusy(false);
+        return;
+      }
+      error = await signUp(email.trim(), password.trim(), name.trim());
+    }
+
+    setBusy(false);
+
+    if (error) {
+      Alert.alert('Error', error);
+    } else {
+      router.replace('/(tabs)' as any);
     }
   };
 
   const handleSkip = () => {
-    setIsVerifier(false);
+    skipLogin();
     router.replace('/(tabs)' as any);
   }
 
   const goToAdmin = () => {
-    setIsAdmin(true);
     router.replace('/admin' as any);
   };
 
@@ -59,21 +79,55 @@ export default function LoginScreen() {
           <Ionicons name="leaf" size={48} color="#fff" />
         </View>
         <Text style={s.appName}>Social Clean</Text>
-        <Text style={s.subtitle}>Inicio de sesion</Text>
+        <Text style={s.subtitle}>
+          {mode === 'login' ? 'Inicio de sesion' : 'Crear cuenta'}
+        </Text>
+      </View>
+
+      {/* Mode toggle */}
+      <View style={s.toggleRow}>
+        <Pressable
+          style={[s.toggleBtn, mode === 'login' && s.toggleBtnActive]}
+          onPress={() => setMode('login')}
+        >
+          <Text style={[s.toggleText, mode === 'login' && s.toggleTextActive]}>Iniciar sesion</Text>
+        </Pressable>
+        <Pressable
+          style={[s.toggleBtn, mode === 'register' && s.toggleBtnActive]}
+          onPress={() => setMode('register')}
+        >
+          <Text style={[s.toggleText, mode === 'register' && s.toggleTextActive]}>Registrarse</Text>
+        </Pressable>
       </View>
 
       {/* Form */}
       <View style={s.form}>
+        {mode === 'register' && (
+          <View style={s.inputWrap}>
+            <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
+            <TextInput
+              style={s.input}
+              placeholder="Nombre completo"
+              placeholderTextColor={Colors.textMuted}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+        )}
+
         <View style={s.inputWrap}>
-          <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
+          <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
           <TextInput
             style={s.input}
-            placeholder="Usuario"
+            placeholder="Correo electronico"
             placeholderTextColor={Colors.textMuted}
-            value={user}
-            onChangeText={setUser}
+            value={email}
+            onChangeText={setEmail}
             autoCapitalize="none"
             autoCorrect={false}
+            keyboardType="email-address"
           />
         </View>
 
@@ -83,8 +137,8 @@ export default function LoginScreen() {
             style={s.input}
             placeholder="Contraseña"
             placeholderTextColor={Colors.textMuted}
-            value={pass}
-            onChangeText={setPass}
+            value={password}
+            onChangeText={setPassword}
             secureTextEntry={!showPass}
             autoCapitalize="none"
             autoCorrect={false}
@@ -95,11 +149,17 @@ export default function LoginScreen() {
         </View>
 
         <Pressable
-          style={[s.loginBtn, (!user.trim() || !pass.trim()) && s.loginBtnDisabled]}
-          onPress={handleLogin}
-          disabled={!user.trim() || !pass.trim()}
+          style={[s.loginBtn, (!canSubmit || busy) && s.loginBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={!canSubmit || busy}
         >
-          <Text style={s.loginBtnText}>Iniciar sesion</Text>
+          {busy ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={s.loginBtnText}>
+              {mode === 'login' ? 'Iniciar sesion' : 'Crear cuenta'}
+            </Text>
+          )}
         </Pressable>
       </View>
 
@@ -161,6 +221,33 @@ const s = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+
+  // Toggle
+  toggleRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 3,
+  },
+  toggleBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 11,
+  },
+  toggleBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textMuted,
+  },
+  toggleTextActive: {
+    color: '#fff',
   },
 
   // Form

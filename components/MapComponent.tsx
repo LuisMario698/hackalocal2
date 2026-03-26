@@ -16,10 +16,13 @@ interface Props {
 const getMarkerColor = (category: ReportCategory) => {
   switch (category) {
     case 'trash': return '#EF4444';
+    case 'pothole': return '#8B5E3C';
+    case 'drain': return '#5B8FA8';
     case 'water': return '#3B82F6';
     case 'wildlife': return '#F59E0B';
     case 'electronic': return '#8B5CF6';
     case 'organic': return '#10B981';
+    case 'other': return '#6B7280';
     default: return '#6B7280';
   }
 };
