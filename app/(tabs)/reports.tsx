@@ -62,7 +62,7 @@ function ReportCard({ report }: { report: ReportItem }) {
       <View style={s.cardTop}>
         <View style={[s.catDot, { backgroundColor: cat?.color ?? Colors.textMuted }]} />
         <Text style={s.cardTitle} numberOfLines={1}>{report.title}</Text>
-        <View style={[s.statusChip, { backgroundColor: st.bg }]}>  
+        <View style={[s.statusChip, { backgroundColor: st.bg }]}>
           <Text style={[s.statusText, { color: st.fg }]}>{st.label}</Text>
         </View>
       </View>
@@ -212,7 +212,7 @@ export default function ReportsScreen() {
     setSubmitting(true);
     try {
       // Use authenticated user if available, otherwise fall back to first profile
-      let profileId = user?.id;
+      let profileId = (user as any)?.id;
       if (!profileId) {
         const { data: profileData } = await supabase
           .from('profiles')

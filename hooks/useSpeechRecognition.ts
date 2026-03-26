@@ -1,12 +1,6 @@
 import { useState, useRef } from 'react';
-import { Platform } from 'react-native';
-
-let Voice: any = null;
-try {
-  Voice = require('@react-native-community/voice').default;
-} catch {
-  // Module not available in Expo Go — voice features will be disabled
-}
+import { Audio } from 'expo-av';
+import { supabase } from '../lib/supabase';
 
 interface UseSpeechRecognitionProps {
   language?: string;
@@ -22,132 +16,99 @@ interface UseSpeechRecognitionResult {
   error: string | null;
 }
 
-let webSpeechRecognition: any = null;
-
 export const useSpeechRecognition = ({
-  language = 'es-ES',
+  language = 'es',
 }: UseSpeechRecognitionProps = {}): UseSpeechRecognitionResult => {
   const [transcript, setTranscript] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const webRecognitionRef = useRef<any>(null);
-
-  // Web Speech API para navegadores
-  const initWebSpeechAPI = () => {
-    if (typeof window === 'undefined') return null;
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setError('Web Speech API no soportado en este navegador');
-      return null;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = language;
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    recognition.onstart = () => {
-      setIsRecording(true);
-      setError(null);
-    };
-
-    recognition.onresult = (event: any) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      if (finalTranscript) {
-        setTranscript((prev) => prev + finalTranscript);
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      setError(`Error STT: ${event.error}`);
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-    };
-
-    return recognition;
-  };
-
-  // STT nativo para móvil (iOS/Android)
-  const initMobileVoice = async () => {
-    if (!Voice) { setError('Reconocimiento de voz no disponible'); return; }
-    try {
-      await Voice.start(language);
-      setIsRecording(true);
-      setError(null);
-    } catch (err: any) {
-      setError(`Error al iniciar STT: ${err.message}`);
-    }
-  };
-
-  const stopMobileVoice = async () => {
-    if (!Voice) return;
-    try {
-      setIsLoading(true);
-      await Voice.stop();
-    } catch (err: any) {
-      setError(`Error al detener STT: ${err.message}`);
-    } finally {
-      setIsRecording(false);
-      setIsLoading(false);
-    }
-  };
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   const startRecording = async () => {
     try {
       setError(null);
-      setTranscript('');
-
-      if (Platform.OS === 'web') {
-        const recognition = initWebSpeechAPI();
-        if (recognition) {
-          webRecognitionRef.current = recognition;
-          recognition.start();
-        }
-      } else if (Voice) {
-        // iOS/Android
-        await Voice.start(language);
-        setIsRecording(true);
-      } else {
-        setError('Reconocimiento de voz no disponible en Expo Go');
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        setError('Permiso de micrófono denegado');
+        return;
       }
+
+      // Habilitar modo de grabación en iOS
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      await recording.startAsync();
+
+      recordingRef.current = recording;
+      setIsRecording(true);
     } catch (err: any) {
-      setError(`Error iniciando grabación: ${err.message}`);
+      setError(`Error al grabar: ${err.message}`);
     }
   };
 
   const stopRecording = async () => {
     try {
       setIsLoading(true);
+      if (!recordingRef.current) return;
 
-      if (Platform.OS === 'web') {
-        if (webRecognitionRef.current) {
-          webRecognitionRef.current.stop();
-        }
-      } else if (Voice) {
-        await Voice.stop();
-      }
-    } catch (err: any) {
-      setError(`Error deteniendo grabación: ${err.message}`);
-    } finally {
+      await recordingRef.current.stopAndUnloadAsync();
       setIsRecording(false);
+
+      const uri = recordingRef.current.getURI();
+      if (!uri) {
+        setError('Error: no se grabó audio');
+        return;
+      }
+
+      // Convertir URI a base64
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // Enviar a Edge Function (que tiene la API key de OpenAI)
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token || '';
+
+      const transcribeResponse = await fetch(
+        `${supabaseUrl}/functions/v1/transcribe-audio`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ audio_base64: base64 }),
+        }
+      );
+
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json();
+        setError(`Error: ${errorData.error || 'desconocido'}`);
+        return;
+      }
+
+      const result = await transcribeResponse.json();
+      setTranscript(result.text || '');
+    } catch (err: any) {
+      setError(`Error al transcribir: ${err.message}`);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -156,40 +117,6 @@ export const useSpeechRecognition = ({
     setTranscript('');
     setError(null);
   };
-
-  // Setup Voice listeners para móvil
-  if (Platform.OS !== 'web' && Voice) {
-    const setupVoiceListeners = () => {
-      Voice.onSpeechStart = () => {
-        setIsRecording(true);
-        setError(null);
-      };
-
-      Voice.onSpeechRecognized = () => {
-        setIsLoading(true);
-      };
-
-      Voice.onSpeechEnd = () => {
-        setIsRecording(false);
-      };
-
-      Voice.onSpeechResults = (event: any) => {
-        setTranscript(event.value?.[0] || '');
-        setIsLoading(false);
-      };
-
-      Voice.onSpeechError = (event: any) => {
-        setError(`Error: ${event.error?.message || 'Error desconocido'}`);
-        setIsLoading(false);
-      };
-    };
-
-    // Llamar una sola vez
-    if (!webSpeechRecognition) {
-      setupVoiceListeners();
-      webSpeechRecognition = true;
-    }
-  }
 
   return {
     transcript,

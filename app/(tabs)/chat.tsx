@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -61,8 +62,24 @@ export default function ChatTabScreen() {
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const recordingScale = useRef(new Animated.Value(1)).current;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // STT nativo (Web Speech API + iOS/Android)
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // STT con OpenAI Whisper (Edge Function con API key en Supabase)
   const {
     transcript,
     isRecording,
@@ -70,7 +87,7 @@ export default function ChatTabScreen() {
     startRecording,
     stopRecording,
     error: sttError,
-  } = useSpeechRecognition({ language: 'es-ES' });
+  } = useSpeechRecognition({ language: 'es' });
 
   // Mapeo de rol mock → rol DB
   const roleMap: Record<string, 'client' | 'association' | 'admin'> = {
@@ -190,8 +207,8 @@ export default function ChatTabScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -263,8 +280,8 @@ export default function ChatTabScreen() {
         </View>
       )}
 
-      {/* Input */}
-      <View style={[styles.inputArea, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      {/* Input — cuando teclado cerrado: padding para tab bar. Cuando abierto: padding mínimo */}
+      <View style={[styles.inputArea, { paddingBottom: keyboardVisible ? 12 : (90 + insets.bottom) }]}>
         {selectedImage && (
           <View style={styles.imagePreview}>
             <Image source={{ uri: selectedImage }} style={styles.imageThumbnail} />
@@ -366,7 +383,8 @@ const styles = StyleSheet.create({
   },
   // Messages
   messagesList: {
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
     flexGrow: 1,
   },
   // Empty
@@ -432,7 +450,8 @@ const styles = StyleSheet.create({
   // Input
   inputArea: {
     paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingTop: 12,
+    paddingBottom: 0,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: Colors.border,
@@ -460,15 +479,17 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 8,
+    paddingHorizontal: 4,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   recordingBtn: {
     backgroundColor: '#E63946',
@@ -478,18 +499,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 15,
+    minHeight: 44,
     maxHeight: 100,
     color: Colors.text,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   sendBtnDisabled: {
     opacity: 0.4,
