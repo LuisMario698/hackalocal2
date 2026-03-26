@@ -84,6 +84,8 @@ export default function MapComponent({ userLocation, reports, selectedReport, on
             key={report.id}
             coordinate={{ latitude: report.latitude, longitude: report.longitude }}
             pinColor={getMarkerColor(report.category)}
+            opacity={selectedReport ? (selectedReport.id === report.id ? 1 : 0.35) : 1}
+            zIndex={selectedReport?.id === report.id ? 10 : 1}
             onPress={(e) => {
               e.stopPropagation(); 
               onSelectReport(report);
@@ -113,7 +115,7 @@ const styles = StyleSheet.create({
   myLocationButton: {
     position: 'absolute',
     right: 20,
-    bottom: 220, // Adjusted to sit just above the new compact cards stack
+    bottom: 290, // Raised further to keep clear separation from cards
     backgroundColor: 'white',
     padding: 12,
     borderRadius: 30,

@@ -14,6 +14,7 @@ import {
 import Text from '../ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 
 const PRIMARY = '#1D9E75';
 
@@ -68,7 +69,10 @@ export default function CreatePostSheet({ visible, onClose, onSubmit }: CreatePo
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Pressable style={styles.backdrop} onPress={handleClose} />
+        <View style={styles.backdrop}>
+          <BlurView intensity={24} tint="light" style={StyleSheet.absoluteFillObject} />
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={handleClose} />
+        </View>
         <View style={styles.sheetWrap}>
           <View style={[styles.card, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
             <View style={styles.handle} />
@@ -81,7 +85,7 @@ export default function CreatePostSheet({ visible, onClose, onSubmit }: CreatePo
                 <Text style={styles.headerSubtitle}>Comparte un aviso con tu comunidad</Text>
               </View>
               <Pressable style={styles.closeBtn} onPress={handleClose}>
-                <Ionicons name="close" size={18} color="#4B5563" />
+                <Ionicons name="close" size={18} color="#6B7280" />
               </Pressable>
             </View>
 
@@ -160,29 +164,30 @@ export default function CreatePostSheet({ visible, onClose, onSubmit }: CreatePo
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,12,20,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   sheetWrap: {
-    paddingHorizontal: 0,
-    paddingBottom: 0,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderRadius: 28,
     paddingTop: 14,
     paddingHorizontal: 16,
-    maxHeight: '86%',
-    minHeight: '56%',
-    borderWidth: 0,
-    shadowOpacity: 0,
-    elevation: 0,
+    maxHeight: '90%',
+    minHeight: '74%',
+    borderWidth: 1,
+    borderColor: '#E4EBF3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 12,
     overflow: 'hidden',
   },
   handle: {
@@ -297,8 +302,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1D21',
     lineHeight: 22,
-    minHeight: 130,
-    maxHeight: 220,
+    minHeight: 250,
+    maxHeight: 420,
     borderWidth: 1,
     borderColor: '#E3E9F0',
     borderRadius: 14,
@@ -319,6 +324,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
     marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#EEF2F7',
   },
   cancelBtn: {
     flex: 1,

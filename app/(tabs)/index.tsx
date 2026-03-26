@@ -237,6 +237,57 @@ export default function HomeScreen() {
   const [notifsVisible, setNotifsVisible] = useState(false);
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
 
+  const appendCommentToItem = useCallback((itemId: string, comment: CommentData) => {
+    if (itemId.startsWith('post-')) {
+      const postId = itemId.replace('post-', '');
+      setPosts((prev) => prev.map((p) => (
+        p.id === postId
+          ? {
+              ...p,
+              commentsCount: (p.commentsCount ?? 0) + 1,
+              initialComments: [...(p.initialComments ?? []), comment],
+            }
+          : p
+      )));
+      return;
+    }
+
+    setReports((prev) => prev.map((r) => (
+      r.id === itemId
+        ? {
+            ...r,
+            commentsCount: (r.commentsCount ?? 0) + 1,
+            initialComments: [...(r.initialComments ?? []), comment],
+          }
+        : r
+    )));
+  }, []);
+
+  const toggleLikeForItem = useCallback((itemId: string, baseLikes: number) => {
+    setLikedMap((prev) => {
+      const wasLiked = prev[itemId] || false;
+      const delta = wasLiked ? -1 : 1;
+
+      setLikesMap((lp) => ({
+        ...lp,
+        [itemId]: (lp[itemId] ?? baseLikes) + delta,
+      }));
+
+      if (itemId.startsWith('post-')) {
+        const postId = itemId.replace('post-', '');
+        setPosts((postPrev) => postPrev.map((p) => (
+          p.id === postId ? { ...p, likesCount: Math.max(0, (p.likesCount ?? 0) + delta) } : p
+        )));
+      } else {
+        setReports((reportPrev) => reportPrev.map((r) => (
+          r.id === itemId ? { ...r, likesCount: Math.max(0, (r.likesCount ?? 0) + delta) } : r
+        )));
+      }
+
+      return { ...prev, [itemId]: !wasLiked };
+    });
+  }, []);
+
   const fetchUnreadCount = useCallback(async () => {
     const { count, error } = await supabase
       .from('notifications')
@@ -269,6 +320,7 @@ export default function HomeScreen() {
   const handleOpenPostComments = useCallback((post: PostData) => {
     const pseudoReport: ReportData = {
       id: `post-${post.id}`,
+      mapReportId: post.reportId ?? undefined,
       userName: post.userName,
       userInitials: post.userInitials,
       timeAgo: post.timeAgo,
@@ -310,8 +362,9 @@ export default function HomeScreen() {
         ...prev,
         [commentsReport.id]: [...(prev[commentsReport.id] || []), newComment],
       }));
+      appendCommentToItem(commentsReport.id, newComment);
     },
-    [commentsReport, profile]
+    [commentsReport, profile, appendCommentToItem]
   );
 
   // -- Detail handlers --
@@ -336,6 +389,7 @@ export default function HomeScreen() {
   const handlePressPost = useCallback((post: PostData) => {
     const pseudoReport: ReportData = {
       id: `post-${post.id}`,
+      mapReportId: post.reportId ?? undefined,
       userName: post.userName,
       userInitials: post.userInitials,
       timeAgo: post.timeAgo,
@@ -380,16 +434,16 @@ export default function HomeScreen() {
 
   const handleDetailLike = useCallback(() => {
     if (!detailReport) return;
-    const id = detailReport.id;
-    setLikedMap((prev) => {
-      const wasLiked = prev[id] || false;
-      setLikesMap((lp) => ({
-        ...lp,
-        [id]: (lp[id] ?? detailReport.likesCount) + (wasLiked ? -1 : 1),
-      }));
-      return { ...prev, [id]: !wasLiked };
-    });
-  }, [detailReport]);
+    toggleLikeForItem(detailReport.id, detailReport.likesCount);
+  }, [detailReport, toggleLikeForItem]);
+
+  const handleFeedReportLike = useCallback((report: ReportData) => {
+    toggleLikeForItem(report.id, report.likesCount);
+  }, [toggleLikeForItem]);
+
+  const handleFeedPostLike = useCallback((post: PostData) => {
+    toggleLikeForItem(`post-${post.id}`, post.likesCount);
+  }, [toggleLikeForItem]);
 
   const handleDetailAddComment = useCallback(
     (text: string) => {
@@ -405,8 +459,9 @@ export default function HomeScreen() {
         ...prev,
         [detailReport.id]: [...(prev[detailReport.id] || []), newComment],
       }));
+      appendCommentToItem(detailReport.id, newComment);
     },
-    [detailReport, profile]
+    [detailReport, profile, appendCommentToItem]
   );
 
   // -- Search handler --
@@ -497,6 +552,10 @@ export default function HomeScreen() {
         onOpenPostComments={handleOpenPostComments}
         onPressPost={handlePressPost}
         onJoinPost={handleJoinPost}
+        onToggleReportLike={handleFeedReportLike}
+        onTogglePostLike={handleFeedPostLike}
+        likedMap={likedMap}
+        likesMap={likesMap}
         currentUserId={user?.id}
         refreshing={refreshing}
         onRefresh={handleRefresh}

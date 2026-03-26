@@ -51,18 +51,19 @@ interface PostCardProps {
   onOpenComments?: (post: PostData) => void;
   onPress?: (post: PostData) => void;
   onJoin?: (post: PostData) => void;
+  onToggleLike?: (post: PostData) => void;
+  liked?: boolean;
+  likesCountOverride?: number;
 }
 
-export default function PostCard({ post, onOpenComments, onPress, onJoin }: PostCardProps) {
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
+export default function PostCard({ post, onOpenComments, onPress, onJoin, onToggleLike, liked = false, likesCountOverride }: PostCardProps) {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const typeConf = TYPE_CONFIG[post.type] || TYPE_CONFIG.info;
   const avatarBg = getAvatarColor(post.userName);
+  const likesCount = likesCountOverride ?? post.likesCount;
 
   const handleLike = () => {
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+    onToggleLike?.(post);
   };
 
   const handleShare = async () => {

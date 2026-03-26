@@ -71,6 +71,7 @@ export interface CommentData {
 
 export interface ReportData {
   id: string;
+  mapReportId?: string;
   userId?: string;
   userName: string;
   userInitials: string;
@@ -100,24 +101,24 @@ interface FeedCardProps {
   report: ReportData;
   onOpenComments: (report: ReportData) => void;
   onPress: (report: ReportData) => void;
+  onToggleLike?: (report: ReportData) => void;
+  liked?: boolean;
+  likesCountOverride?: number;
   onSolicitar?: (report: ReportData) => void;
   onCompletar?: (report: ReportData) => void;
   isOwnReport?: boolean;
 }
 
-export default function FeedCard({ report, onOpenComments, onPress, onSolicitar, onCompletar, isOwnReport }: FeedCardProps) {
+export default function FeedCard({ report, onOpenComments, onPress, onToggleLike, liked = false, likesCountOverride, onSolicitar, onCompletar, isOwnReport }: FeedCardProps) {
   const router = useRouter();
   const { setHighlightedReportId } = useMapHighlight();
 
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(report.likesCount);
   const [shared, setShared] = useState(false);
   const [solicitado, setSolicitado] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
 
   const handleLike = () => {
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+    onToggleLike?.(report);
   };
 
   const handleShare = async () => {
@@ -155,7 +156,8 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
   const categoryColor = COLORS.category[report.category] || COLORS.category.other;
   const statusStyle = COLORS.status[report.status] || COLORS.status.pending;
   const avatarBg = getAvatarColor(report.userName);
-  const commentsCount = report.initialComments?.length ?? report.commentsCount;
+  const commentsCount = report.commentsCount;
+  const likesCount = likesCountOverride ?? report.likesCount;
 
   return (
     <Pressable style={styles.card} onPress={() => onPress(report)}>

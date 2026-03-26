@@ -1496,6 +1496,9 @@ const lc = StyleSheet.create({
 });
 
 function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[]; reports: CitizenReport[]; actions: HelpAction[] }) {
+  const { width } = useWindowDimensions();
+  const stacked = width < 1120;
+
   const coveredReportIds = new Set(actions.map((a) => a.reportId));
   const coveredReports = reports.filter((r) => coveredReportIds.has(r.id)).length;
   const uncoveredReports = reports.length - coveredReports;
@@ -1511,6 +1514,48 @@ function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[];
     ...reports.map((r) => r.citizenId),
     ...actions.map((a) => a.citizenId),
   ]);
+  const participationPct = citizens.length ? Math.round((activeCitizenIds.size / citizens.length) * 100) : 0;
+
+  const parseDate = (d: string) => new Date(`${d}T00:00:00`).getTime();
+  const now = Date.now();
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const reportsLast7 = reports.filter((r) => parseDate(r.date) >= sevenDaysAgo).length;
+  const actionsLast7 = actions.filter((a) => parseDate(a.date) >= sevenDaysAgo).length;
+
+  const wasteReports = reports.filter((r) => ['Basura', 'Electrónicos', 'Orgánico'].includes(r.category)).length;
+  const waterRiskReports = reports.filter((r) => r.category === 'Agua').length;
+  const wildlifeReports = reports.filter((r) => r.category === 'Fauna').length;
+
+  const estimatedWasteKg = coveredReports * 35 + actions.length * 18;
+  const estimatedCo2Kg = Math.round(estimatedWasteKg * 0.38);
+
+  const attentionDays = reports
+    .map((r) => {
+      const reportDate = parseDate(r.date);
+      const related = actions
+        .filter((a) => a.reportId === r.id)
+        .map((a) => parseDate(a.date))
+        .sort((a, b) => a - b);
+      if (related.length === 0) return null;
+      const diff = Math.max(0, Math.round((related[0] - reportDate) / (1000 * 60 * 60 * 24)));
+      return diff;
+    })
+    .filter((n): n is number => n !== null);
+
+  const avgAttentionDays = attentionDays.length
+    ? Number((attentionDays.reduce((sum, n) => sum + n, 0) / attentionDays.length).toFixed(1))
+    : 0;
+
+  const zoneCount = [...reports, ...actions]
+    .map((item: any) => (item.location ?? 'Sin ubicación').split(',')[0].trim())
+    .reduce<Record<string, number>>((acc, zone) => {
+      acc[zone] = (acc[zone] ?? 0) + 1;
+      return acc;
+    }, {});
+
+  const hotZones = Object.entries(zoneCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
 
   const categoryCounts = reports.reduce<Record<string, number>>((acc, r) => {
     acc[r.category] = (acc[r.category] ?? 0) + 1;
@@ -1530,26 +1575,72 @@ function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[];
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={ds.wrap}>
+      <View style={[ds.heroRow, stacked && ds.heroRowStacked]}>
+        <View style={[ds.heroCard, ds.heroCardPrimary, stacked && ds.heroCardStacked]}>
+          <View style={ds.heroIconWrap}>
+            <Ionicons name="leaf" size={22} color="#1D9E75" />
+          </View>
+          <Text style={ds.heroTitle}>Impacto ambiental estimado</Text>
+          <Text style={ds.heroValue}>{estimatedWasteKg} kg</Text>
+          <Text style={ds.heroSub}>de residuos recuperados por atención ciudadana</Text>
+          <View style={ds.heroInlineStats}>
+            <View style={ds.heroMiniPill}><Text style={ds.heroMiniPillText}>CO2 evitado: {estimatedCo2Kg} kg</Text></View>
+            <View style={ds.heroMiniPill}><Text style={ds.heroMiniPillText}>Cobertura: {coveragePct}%</Text></View>
+          </View>
+        </View>
+
+        <View style={[ds.heroCard, ds.heroCardSecondary, stacked && ds.heroCardStacked]}>
+          <View style={ds.heroIconWrapSecondary}>
+            <Ionicons name="people" size={22} color="#3B82F6" />
+          </View>
+          <Text style={ds.heroTitle}>Movilización comunitaria</Text>
+          <Text style={ds.heroValue}>{participationPct}%</Text>
+          <Text style={ds.heroSub}>de ciudadanos participando activamente</Text>
+          <View style={ds.heroInlineStats}>
+            <View style={[ds.heroMiniPill, ds.heroMiniPillBlue]}><Text style={ds.heroMiniPillTextBlue}>+{reportsLast7} reportes (7d)</Text></View>
+            <View style={[ds.heroMiniPill, ds.heroMiniPillBlue]}><Text style={ds.heroMiniPillTextBlue}>+{actionsLast7} acciones (7d)</Text></View>
+          </View>
+        </View>
+      </View>
+
       <View style={ds.kpiGrid}>
-        <View style={ds.kpiCard}>
-          <Text style={ds.kpiLabel}>Reportes totales</Text>
+        <View style={ds.kpiCardLarge}>
+          <View style={ds.kpiHead}><Ionicons name="alert-circle" size={18} color={Colors.accent} /><Text style={ds.kpiLabel}>Reportes totales</Text></View>
           <Text style={ds.kpiValue}>{reports.length}</Text>
         </View>
-        <View style={ds.kpiCard}>
-          <Text style={ds.kpiLabel}>Acciones de ayuda</Text>
+        <View style={ds.kpiCardLarge}>
+          <View style={ds.kpiHead}><Ionicons name="hand-right" size={18} color="#8B5CF6" /><Text style={ds.kpiLabel}>Acciones de ayuda</Text></View>
           <Text style={ds.kpiValue}>{actions.length}</Text>
         </View>
-        <View style={ds.kpiCard}>
-          <Text style={ds.kpiLabel}>Ciudadanos activos</Text>
+        <View style={ds.kpiCardLarge}>
+          <View style={ds.kpiHead}><Ionicons name="people" size={18} color="#3B82F6" /><Text style={ds.kpiLabel}>Ciudadanos activos</Text></View>
           <Text style={ds.kpiValue}>{activeCitizenIds.size} / {citizens.length}</Text>
         </View>
-        <View style={ds.kpiCard}>
-          <Text style={ds.kpiLabel}>Registros manuales</Text>
+        <View style={ds.kpiCardLarge}>
+          <View style={ds.kpiHead}><Ionicons name="business" size={18} color={Colors.primary} /><Text style={ds.kpiLabel}>Registros manuales</Text></View>
           <Text style={ds.kpiValue}>{manualRegs}</Text>
         </View>
       </View>
 
-      <View style={ds.row}>
+      <View style={[ds.envGrid, stacked && ds.envGridStacked]}>
+        <View style={ds.envCard}>
+          <View style={ds.envHeader}><Ionicons name="trash" size={18} color={Colors.category.trash} /><Text style={ds.envTitle}>Residuos y limpieza</Text></View>
+          <Text style={ds.envValue}>{wasteReports}</Text>
+          <Text style={ds.envSub}>reportes relacionados con basura, orgánicos y electrónicos</Text>
+        </View>
+        <View style={ds.envCard}>
+          <View style={ds.envHeader}><Ionicons name="water" size={18} color={Colors.category.drain} /><Text style={ds.envTitle}>Riesgo hídrico</Text></View>
+          <Text style={ds.envValue}>{waterRiskReports}</Text>
+          <Text style={ds.envSub}>incidencias de agua y drenaje detectadas</Text>
+        </View>
+        <View style={ds.envCard}>
+          <View style={ds.envHeader}><Ionicons name="paw" size={18} color={Colors.category.wildlife} /><Text style={ds.envTitle}>Fauna y biodiversidad</Text></View>
+          <Text style={ds.envValue}>{wildlifeReports}</Text>
+          <Text style={ds.envSub}>alertas ambientales relacionadas con fauna</Text>
+        </View>
+      </View>
+
+      <View style={[ds.row, stacked && ds.rowStacked]}>
         <View style={ds.panel}>
           <Text style={ds.panelTitle}>Cobertura del programa</Text>
           <View style={ds.progressTrack}>
@@ -1563,16 +1654,16 @@ function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[];
         </View>
 
         <View style={ds.panel}>
-          <Text style={ds.panelTitle}>Calidad de evidencia</Text>
+          <Text style={ds.panelTitle}>Calidad de evidencia y atención</Text>
           <View style={ds.progressTrackSecondary}>
             <View style={[ds.progressFillSecondary, { width: `${evidencePct}%` }]} />
           </View>
           <Text style={ds.progressText}>{evidencePct}% de registros con evidencia ({withEvidence}/{totalRecords})</Text>
-          <Text style={ds.helper}>Ayuda a medir trazabilidad y soporte para verificación.</Text>
+          <Text style={ds.helper}>Tiempo promedio de atención: {avgAttentionDays} días.</Text>
         </View>
       </View>
 
-      <View style={ds.row}>
+      <View style={[ds.row, stacked && ds.rowStacked]}>
         <View style={ds.panel}>
           <Text style={ds.panelTitle}>Top categorías reportadas</Text>
           {topCategories.length === 0 ? (
@@ -1594,7 +1685,15 @@ function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[];
         </View>
 
         <View style={ds.panel}>
-          <Text style={ds.panelTitle}>Actividad reciente</Text>
+          <Text style={ds.panelTitle}>Actividad reciente y zonas críticas</Text>
+          <View style={ds.hotZonesWrap}>
+            {hotZones.map(([zone, count]) => (
+              <View key={zone} style={ds.hotZonePill}>
+                <Ionicons name="location" size={13} color="#B45309" />
+                <Text style={ds.hotZoneText} numberOfLines={1}>{zone} ({count})</Text>
+              </View>
+            ))}
+          </View>
           {recentActivity.length === 0 ? (
             <Text style={ds.empty}>Sin actividad reciente.</Text>
           ) : (
@@ -1616,8 +1715,46 @@ function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[];
 
 const ds = StyleSheet.create({
   wrap: { paddingBottom: 40, gap: 14 },
+  heroRow: { flexDirection: 'row', gap: 12 },
+  heroRowStacked: { flexDirection: 'column' },
+  heroCard: {
+    flex: 1,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+    minHeight: 165,
+  },
+  heroCardPrimary: { backgroundColor: '#F3FBF8', borderColor: '#D2EEE3' },
+  heroCardSecondary: { backgroundColor: '#F2F7FF', borderColor: '#DBE9FF' },
+  heroCardStacked: { minHeight: 150 },
+  heroIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#DDF5EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  heroIconWrapSecondary: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#DCEAFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  heroTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
+  heroValue: { fontSize: 38, fontWeight: '800', color: '#111827', marginTop: 4, lineHeight: 44 },
+  heroSub: { fontSize: 13, color: '#4B5563', marginTop: 2 },
+  heroInlineStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  heroMiniPill: { backgroundColor: '#E4F4EE', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  heroMiniPillBlue: { backgroundColor: '#E6EFFF' },
+  heroMiniPillText: { fontSize: 13, fontWeight: '700', color: '#166534' },
+  heroMiniPillTextBlue: { fontSize: 13, fontWeight: '700', color: '#1D4ED8' },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  kpiCard: {
+  kpiCardLarge: {
     width: '24%',
     minWidth: 180,
     backgroundColor: '#FFFFFF',
@@ -1626,9 +1763,26 @@ const ds = StyleSheet.create({
     borderColor: '#E8ECF0',
     padding: 16,
   },
-  kpiLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280' },
+  kpiHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  kpiLabel: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
   kpiValue: { fontSize: 28, fontWeight: '800', color: '#111827', marginTop: 8 },
+  envGrid: { flexDirection: 'row', gap: 12 },
+  envGridStacked: { flexDirection: 'column' },
+  envCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8ECF0',
+    padding: 16,
+    minHeight: 132,
+  },
+  envHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  envTitle: { fontSize: 16, fontWeight: '800', color: '#1F2937' },
+  envValue: { fontSize: 32, fontWeight: '800', color: '#111827', marginTop: 6 },
+  envSub: { fontSize: 13, color: '#6B7280', marginTop: 2, lineHeight: 19 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  rowStacked: { flexDirection: 'column' },
   panel: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -1638,27 +1792,39 @@ const ds = StyleSheet.create({
     padding: 16,
     minHeight: 210,
   },
-  panelTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 14 },
+  panelTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 14 },
   progressTrack: { height: 12, borderRadius: 999, backgroundColor: '#E5F3EF', overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#1D9E75' },
   progressTrackSecondary: { height: 12, borderRadius: 999, backgroundColor: '#E7EDFA', overflow: 'hidden' },
   progressFillSecondary: { height: '100%', backgroundColor: '#3B82F6' },
-  progressText: { marginTop: 10, fontSize: 13, color: '#4B5563', fontWeight: '600' },
-  helper: { marginTop: 6, fontSize: 12, color: '#6B7280' },
+  progressText: { marginTop: 10, fontSize: 14, color: '#4B5563', fontWeight: '600' },
+  helper: { marginTop: 6, fontSize: 13, color: '#6B7280' },
   splitRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   splitItem: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10 },
-  splitLabel: { fontSize: 12, color: '#6B7280' },
+  splitLabel: { fontSize: 13, color: '#6B7280' },
   splitValue: { fontSize: 18, fontWeight: '800', color: '#111827', marginTop: 2 },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  catLabel: { width: 92, fontSize: 13, fontWeight: '600', color: '#374151' },
+  catLabel: { width: 110, fontSize: 14, fontWeight: '600', color: '#374151' },
   catTrack: { flex: 1, height: 9, borderRadius: 999, backgroundColor: '#F1F5F9', overflow: 'hidden' },
   catFill: { height: '100%', borderRadius: 999 },
-  catCount: { width: 24, textAlign: 'right', fontSize: 13, fontWeight: '700', color: '#111827' },
+  catCount: { width: 24, textAlign: 'right', fontSize: 14, fontWeight: '700', color: '#111827' },
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   activityDot: { width: 9, height: 9, borderRadius: 5 },
-  activityLabel: { fontSize: 13, fontWeight: '700', color: '#1F2937' },
-  activityMeta: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  empty: { fontSize: 13, color: '#6B7280' },
+  activityLabel: { fontSize: 14, fontWeight: '700', color: '#1F2937' },
+  activityMeta: { fontSize: 13, color: '#6B7280', marginTop: 2 },
+  hotZonesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  hotZonePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: 220,
+  },
+  hotZoneText: { fontSize: 13, fontWeight: '700', color: '#92400E' },
+  empty: { fontSize: 14, color: '#6B7280' },
 });
 
 // ─── Root Screen ─────────────────────────────────────────────

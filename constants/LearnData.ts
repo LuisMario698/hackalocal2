@@ -43,7 +43,7 @@ export const LEARN_DATA: LearnItem[] = [
     type: 'article',
     title: 'Guía práctica para reducir el uso de plástico en el hogar',
     source: 'Greenpeace',
-    url: 'https://es.greenpeace.org/es/trabajamos-en/consumismo/plasticos/como-reducir-tu-consumo-de-plastico/',
+    url: 'https://es.greenpeace.org/es/trabajamos-en/consumismo/plasticos/',
     summary: 'Consejos prácticos y fáciles de implementar en la vida cotidiana para disminuir de forma significativa nuestra huella plástica.',
   },
   {

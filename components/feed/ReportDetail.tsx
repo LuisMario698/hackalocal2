@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -97,9 +98,16 @@ export default function ReportDetail({
 
   const handleJoin = () => {
     if (report) {
-      setHighlightedReportId(report.id);
-      onClose();
+      const mapTargetId = report.mapReportId ?? (report.id.startsWith('post-') ? null : report.id);
+
+      if (!mapTargetId) {
+        Alert.alert('Sin ubicación', 'Esta publicación no está vinculada a un reporte del mapa.');
+        return;
+      }
+
+      setHighlightedReportId(mapTargetId);
       router.push('/(tabs)/map' as any);
+      onClose();
     }
   };
 

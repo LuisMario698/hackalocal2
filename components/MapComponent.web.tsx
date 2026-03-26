@@ -23,7 +23,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 // Leaflet solo existe en browser — lo cargamos una vez a nivel de módulo
 const L = typeof window !== 'undefined' ? require('leaflet') : null;
 
-function pinIcon(color: string, selected: boolean) {
+function pinIcon(color: string, selected: boolean, dimmed: boolean) {
   const r = selected ? 14 : 11;
   const tip = selected ? 10 : 8;
   const total = r * 2 + tip;
@@ -34,6 +34,8 @@ function pinIcon(color: string, selected: boolean) {
       position:relative;
       width:${r * 2}px;
       height:${total}px;
+      opacity:${dimmed ? 0.35 : 1};
+      filter:${dimmed ? 'grayscale(45%)' : 'none'};
     ">
       <div style="
         position:absolute;
@@ -173,7 +175,8 @@ export default function MapComponent({
             position={[report.latitude, report.longitude]}
             icon={pinIcon(
               CATEGORY_COLORS[report.category] ?? CATEGORY_COLORS.other,
-              selectedReport?.id === report.id
+              selectedReport?.id === report.id,
+              !!selectedReport && selectedReport.id !== report.id
             )}
             eventHandlers={{
               click: (e: any) => {

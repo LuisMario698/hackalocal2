@@ -176,6 +176,17 @@ export default function MapScreen() {
   const [mapReports, setMapReports] = useState<ReportMock[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
 
+  const toReportMock = useCallback((r: any): ReportMock => ({
+    id: r.id,
+    title: r.title,
+    category: r.category as ReportCategory,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    photo_url: r.photo_url ?? null,
+    status: r.status ?? 'pending',
+    description: r.description ?? null,
+  }), []);
+
   const fetchMapReports = useCallback(async () => {
     const { data, error } = await supabase
       .from('reports')
@@ -188,16 +199,7 @@ export default function MapScreen() {
       return;
     }
 
-    const mapped: ReportMock[] = (data ?? []).map((r: any) => ({
-      id: r.id,
-      title: r.title,
-      category: r.category as ReportCategory,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      photo_url: r.photo_url ?? null,
-      status: r.status ?? 'pending',
-      description: r.description ?? null,
-    }));
+    const mapped: ReportMock[] = (data ?? []).map(toReportMock);
 
     setMapReports(prev => {
       // If selected report is no longer in the new list, deselect it
@@ -207,7 +209,22 @@ export default function MapScreen() {
       });
       return mapped;
     });
-  }, []);
+  }, [toReportMock]);
+
+  const fetchReportById = useCallback(async (reportId: string): Promise<ReportMock | null> => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('id, title, category, latitude, longitude, photo_url, status, description')
+      .eq('id', reportId)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) console.warn('Error fetching highlighted report:', error.message);
+      return null;
+    }
+
+    return toReportMock(data);
+  }, [toReportMock]);
 
   useEffect(() => {
     setLoadingReports(true);
@@ -254,18 +271,44 @@ export default function MapScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      if (highlightedReportId) {
-        const reportToSelect = mapReports.find(r => r.id === highlightedReportId);
-        
-        if (reportToSelect) {
-          if (activeFilter !== 'all' && activeFilter !== reportToSelect.category) {
-            setActiveFilter('all');
+      let cancelled = false;
+
+      const applyHighlightSelection = async () => {
+        if (!highlightedReportId) return;
+
+        let reportToSelect = mapReports.find((r) => r.id === highlightedReportId) ?? null;
+
+        if (!reportToSelect) {
+          reportToSelect = await fetchReportById(highlightedReportId);
+          if (cancelled) return;
+          if (reportToSelect) {
+            setMapReports((prev) => (
+              prev.some((r) => r.id === reportToSelect!.id)
+                ? prev
+                : [reportToSelect!, ...prev]
+            ));
           }
-          handleSelectReport(reportToSelect);
-          clearHighlight();
         }
-      }
-    }, [highlightedReportId, activeFilter, clearHighlight, mapReports])
+
+        if (!reportToSelect) {
+          clearHighlight();
+          return;
+        }
+
+        if (activeFilter !== 'all' && activeFilter !== reportToSelect.category) {
+          setActiveFilter('all');
+        }
+
+        handleSelectReport(reportToSelect);
+        clearHighlight();
+      };
+
+      applyHighlightSelection();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [highlightedReportId, mapReports, fetchReportById, activeFilter, clearHighlight])
   );
 
   const [loadingRoute, setLoadingRoute] = useState(false);
