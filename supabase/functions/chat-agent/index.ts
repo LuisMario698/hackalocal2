@@ -6,6 +6,20 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// ── Extract address from text ────────────────────────────────────────
+function extractAddress(text: string): string | null {
+  const patterns = [
+    /\b(calle|avenida|av\.?|blvd\.?|boulevard|carretera|camino|cerrada|privada)\s+[\w\s\d]+(?=[.,!?]|$)/gi,
+    /\bentre\s+[\w\s\d]+\s+y\s+[\w\s\d]+/gi,
+    /\b\d+\.\d+,\s*-?\d+\.\d+\b/g,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[0].trim();
+  }
+  return null;
+}
+
 // ── System prompts por rol ──────────────────────────────────────────
 const SYSTEM_PROMPTS: Record<string, string> = {
   client: `Eres un asistente amigable de la app Social Clean.
@@ -220,6 +234,8 @@ async function executeTool(
         if (draftErr || !draft) return JSON.stringify({ error: "Borrador no encontrado" });
 
         const content = draft.content as any;
+        // Extraer dirección del texto si no está incluida
+        const addressFromText = extractAddress(content.description);
         const { data: report, error: reportErr } = await supabase
           .from("reports")
           .insert({
@@ -227,6 +243,7 @@ async function executeTool(
             title: content.title,
             description: content.description,
             category: content.category,
+            address: content.address || addressFromText || null,
             severity: content.severity,
             latitude: 0,
             longitude: 0,
@@ -459,7 +476,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { conversation_id, message, user_role, user_id } = await req.json();
+    const { conversation_id, message, image_url, user_role, user_id } = await req.json();
 
     if (!message || !user_role || !user_id) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
@@ -483,7 +500,8 @@ Deno.serve(async (req: Request) => {
       conversation_id: convId,
       role: "user",
       content: message,
-      input_type: "text",
+      input_type: image_url ? "image" : "text",
+      metadata: image_url ? { image_url } : undefined,
     });
 
     // Cargar historial (últimos 20)

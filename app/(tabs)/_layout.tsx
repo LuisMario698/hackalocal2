@@ -51,6 +51,15 @@ function getTabMeta(routeName: string) {
     };
   }
 
+  if (routeName === 'chat') {
+    return {
+      label: 'IA',
+      icon: (color: string, size: number) => (
+        <Ionicons name="chatbubble-ellipses" size={size} color={color} />
+      ),
+    };
+  }
+
   if (routeName === 'aprende') {
     return {
       label: 'Aprende',
@@ -217,6 +226,12 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: 'Reportes',
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'IA',
         }}
       />
       <Tabs.Screen
