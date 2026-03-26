@@ -20,10 +20,14 @@ export const Colors = {
   status: {
     pending: '#FAEEDA',
     pendingText: '#92600A',
+    verified: '#E1F5EE',
+    verifiedText: '#0D6E4F',
     inProgress: '#E6F1FB',
     inProgressText: '#1A5A96',
     resolved: '#E1F5EE',
     resolvedText: '#0D6E4F',
+    rejected: '#FDE8E8',
+    rejectedText: '#C53030',
   },
 
   // Generales

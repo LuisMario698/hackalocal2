@@ -107,7 +107,7 @@ export const BADGES: Badge[] = [
 ];
 
 // Categorías de reporte (sin IA — selección manual)
-export type ReportCategory = 'pothole' | 'trash' | 'drain';
+export type ReportCategory = 'trash' | 'pothole' | 'drain' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
 
 export interface CategoryInfo {
   id: ReportCategory;
@@ -138,5 +138,40 @@ export const REPORT_CATEGORIES: CategoryInfo[] = [
     icon: 'water-outline',
     color: '#378ADD',
     description: 'Problemas de alcantarillado o drenaje',
+  },
+  {
+    id: 'water',
+    name: 'Agua contaminada',
+    icon: 'flask-outline',
+    color: '#3B82F6',
+    description: 'Contaminacion o fugas de agua',
+  },
+  {
+    id: 'wildlife',
+    name: 'Vida silvestre',
+    icon: 'paw-outline',
+    color: '#BA7517',
+    description: 'Animales en peligro o afectados',
+  },
+  {
+    id: 'electronic',
+    name: 'Electronico',
+    icon: 'desktop-outline',
+    color: '#7F77DD',
+    description: 'Residuos electronicos abandonados',
+  },
+  {
+    id: 'organic',
+    name: 'Organico',
+    icon: 'leaf-outline',
+    color: '#10B981',
+    description: 'Residuos organicos sin recolectar',
+  },
+  {
+    id: 'other',
+    name: 'Otro',
+    icon: 'ellipsis-horizontal-outline',
+    color: '#6B7280',
+    description: 'Otro tipo de problema ambiental',
   },
 ];

@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Image,
@@ -19,9 +20,10 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { Colors } from '../../constants/Colors';
 import { REPORT_CATEGORIES, type ReportCategory } from '../../constants/Gamification';
-import { REPORTS, type MockReport, type ReportStatus } from '../../constants/MockData';
+import { type ReportStatus } from '../../constants/MockData';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { haversineMeters } from '../../utils/geo';
+import { supabase } from '../../lib/supabase';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -33,14 +35,27 @@ const SCREEN_W = Dimensions.get('window').width;
 // ─── Status helpers ──────────────────────────────────────────
 const STATUS_MAP: Record<ReportStatus, { label: string; bg: string; fg: string }> = {
   pending: { label: 'Pendiente', bg: Colors.status.pending, fg: Colors.status.pendingText },
+  verified: { label: 'Verificado', bg: Colors.status.verified, fg: Colors.status.verifiedText },
   in_progress: { label: 'En progreso', bg: Colors.status.inProgress, fg: Colors.status.inProgressText },
   resolved: { label: 'Resuelto', bg: Colors.status.resolved, fg: Colors.status.resolvedText },
+  rejected: { label: 'Rechazado', bg: Colors.status.rejected, fg: Colors.status.rejectedText },
 };
 
+// ─── Interfaces ─────────────────────────────────────────────
+interface ReportItem {
+  id: string;
+  title: string;
+  description: string;
+  category: ReportCategory;
+  status: ReportStatus;
+  address: string;
+  createdAt: string;
+}
+
 // ─── Small report card ──────────────────────────────────────
-function ReportCard({ report }: { report: MockReport }) {
+function ReportCard({ report }: { report: ReportItem }) {
   const cat = REPORT_CATEGORIES.find(c => c.id === report.category);
-  const st = STATUS_MAP[report.status];
+  const st = STATUS_MAP[report.status] ?? STATUS_MAP.pending;
   return (
     <View style={s.card}>
       <View style={s.cardTop}>
@@ -78,12 +93,40 @@ export default function ReportsScreen() {
   const [pinCoord, setPinCoord] = useState<{ latitude: number; longitude: number } | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // User's reports from mock data
-  const myReports = useMemo(
-    () => REPORTS.filter(r => r.userId === 'user-001'),
-    [],
-  );
+  // Supabase reports state
+  const [myReports, setMyReports] = useState<ReportItem[]>([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+
+  const fetchMyReports = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('id, title, description, category, status, address, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching reports:', error.message);
+      return;
+    }
+
+    setMyReports(
+      (data ?? []).map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description ?? '',
+        category: r.category as ReportCategory,
+        status: r.status as ReportStatus,
+        address: r.address ?? '',
+        createdAt: new Date(r.created_at).toLocaleDateString('es-MX'),
+      })),
+    );
+  }, []);
+
+  useEffect(() => {
+    setLoadingReports(true);
+    fetchMyReports().finally(() => setLoadingReports(false));
+  }, [fetchMyReports]);
 
   // ─── Pick photo ─────────────────────────────────────────
   const pickPhoto = useCallback(async () => {
@@ -134,23 +177,77 @@ export default function ReportsScreen() {
   );
 
   // ─── Nearby duplicate check ─────────────────────────────
-  const nearbyReports = useMemo(() => {
-    if (!pinCoord) return [];
-    return REPORTS.filter(r => {
-      const dist = haversineMeters(pinCoord.latitude, pinCoord.longitude, r.latitude, r.longitude);
-      return dist < MAX_DISTANCE;
-    }).map(r => ({
-      ...r,
-      distance: Math.round(haversineMeters(pinCoord.latitude, pinCoord.longitude, r.latitude, r.longitude)),
-    }));
+  const [nearbyReports, setNearbyReports] = useState<{ id: string; title: string; status: ReportStatus; distance: number }[]>([]);
+
+  useEffect(() => {
+    if (!pinCoord) {
+      setNearbyReports([]);
+      return;
+    }
+    // Query reports near the pin from DB
+    (async () => {
+      const { data } = await supabase
+        .from('reports')
+        .select('id, title, status, latitude, longitude');
+      if (!data) return;
+      const nearby = data
+        .map((r: any) => ({
+          ...r,
+          distance: Math.round(haversineMeters(pinCoord.latitude, pinCoord.longitude, r.latitude, r.longitude)),
+        }))
+        .filter((r: any) => r.distance < MAX_DISTANCE)
+        .sort((a: any, b: any) => a.distance - b.distance);
+      setNearbyReports(nearby);
+    })();
   }, [pinCoord]);
 
   // ─── Submit ─────────────────────────────────────────────
-  const canSubmit = category && title.trim() && description.trim() && photoUri && pinCoord && !pinError;
+  const canSubmit = category && title.trim() && description.trim() && photoUri && pinCoord && !pinError && !submitting;
+
+  const doSubmit = async () => {
+    if (!category || !pinCoord || !title.trim() || !description.trim()) return;
+
+    setSubmitting(true);
+    try {
+      // Get a valid user_id from profiles (until real auth is implemented)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1)
+        .single();
+
+      const profileId = (profileData as any)?.id;
+      if (!profileId) {
+        Alert.alert('Error', 'No se encontro un usuario en la base de datos. Crea un perfil primero.');
+        return;
+      }
+
+      const { error } = await supabase.from('reports').insert({
+        user_id: profileId,
+        title: title.trim(),
+        description: description.trim(),
+        category: category as any,
+        severity: 3,
+        latitude: pinCoord.latitude,
+        longitude: pinCoord.longitude,
+        address: '',
+        photo_url: photoUri,
+      } as any);
+
+      if (error) {
+        Alert.alert('Error', 'No se pudo enviar el reporte: ' + error.message);
+      } else {
+        Alert.alert('Reporte enviado', 'Tu reporte ha sido registrado y sera verificado pronto.');
+        resetForm();
+        fetchMyReports();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    // Show duplicate warning if any
     if (nearbyReports.length > 0) {
       const closest = nearbyReports[0];
       Alert.alert(
@@ -158,18 +255,11 @@ export default function ReportsScreen() {
         `Hay ${nearbyReports.length} reporte(s) a menos de 500m.\nMas cercano: "${closest.title}" a ${closest.distance}m.\n\nEl verificador sera notificado.`,
         [
           { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Enviar de todos modos',
-            onPress: () => {
-              Alert.alert('Reporte enviado', 'Tu reporte ha sido registrado y sera verificado pronto.');
-              resetForm();
-            },
-          },
+          { text: 'Enviar de todos modos', onPress: doSubmit },
         ],
       );
     } else {
-      Alert.alert('Reporte enviado', 'Tu reporte ha sido registrado y sera verificado pronto.');
-      resetForm();
+      doSubmit();
     }
   };
 
@@ -205,15 +295,21 @@ export default function ReportsScreen() {
       {/* ═══ LIST VIEW ═══ */}
       {!showForm && (
         <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
-          {myReports.length === 0 && (
+          {loadingReports ? (
+            <View style={s.empty}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : myReports.length === 0 ? (
             <View style={s.empty}>
               <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
-              <Text style={s.emptyText}>Aun no tienes reportes</Text>
+              <Text style={s.emptyText}>Aun no hay reportes</Text>
+              <Text style={[s.emptyText, { fontSize: 13 }]}>Toca el boton + para crear uno</Text>
             </View>
+          ) : (
+            myReports.map(r => (
+              <ReportCard key={r.id} report={r} />
+            ))
           )}
-          {myReports.map(r => (
-            <ReportCard key={r.id} report={r} />
-          ))}
           <View style={{ height: 110 }} />
         </ScrollView>
       )}
@@ -321,7 +417,7 @@ export default function ReportsScreen() {
                 <Text style={s.warnTitle}>Reportes cercanos detectados</Text>
                 {nearbyReports.map(nr => (
                   <Text key={nr.id} style={s.warnItem}>
-                    - "{nr.title}" a {nr.distance}m ({STATUS_MAP[nr.status].label})
+                    - "{nr.title}" a {nr.distance}m ({(STATUS_MAP[nr.status as ReportStatus] ?? STATUS_MAP.pending).label})
                   </Text>
                 ))}
                 <Text style={s.warnHint}>El verificador sera notificado de posibles duplicados.</Text>
@@ -394,7 +490,7 @@ const s = StyleSheet.create({
   fab: {
     position: 'absolute' as const,
     bottom: 120,
-    right: 20,
+    left: 20,
     width: 56,
     height: 56,
     borderRadius: 28,

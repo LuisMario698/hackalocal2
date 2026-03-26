@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, Animated, Pressable } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, Animated, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ScaledText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,8 +7,9 @@ import MapComponent from '../../components/MapComponent';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
 import { useFocusEffect } from 'expo-router';
+import { supabase } from '../../lib/supabase';
 
-export type ReportCategory = 'trash' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
+export type ReportCategory = 'trash' | 'pothole' | 'drain' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
 
 interface ScaleButtonProps {
   onPress?: (e?: any) => void;
@@ -61,21 +62,16 @@ export interface ReportMock {
   longitude: number;
 }
 
-const MOCK_REPORTS: ReportMock[] = [
-  { id: '1', title: 'Basura en la playa', category: 'trash', latitude: 31.3012, longitude: -113.5358 },
-  { id: '2', title: 'Fuga de agua masiva', category: 'water', latitude: 31.3100, longitude: -113.5400 },
-  { id: '3', title: 'Desechos orgánicos', category: 'organic', latitude: 31.3250, longitude: -113.5200 },
-  { id: '4', title: 'TV vieja abandonada', category: 'electronic', latitude: 31.3180, longitude: -113.5100 },
-  { id: '5', title: 'Pelícano herido', category: 'wildlife', latitude: 31.3050, longitude: -113.5500 },
-];
-
 const CATEGORIES = [
   { id: 'all', label: 'Todos', color: '#1F2937' },
   { id: 'trash', label: 'Basura', color: '#EF4444' },
+  { id: 'pothole', label: 'Bache', color: '#8B5E3C' },
+  { id: 'drain', label: 'Drenaje', color: '#5B8FA8' },
   { id: 'water', label: 'Agua', color: '#3B82F6' },
   { id: 'wildlife', label: 'Fauna', color: '#F59E0B' },
   { id: 'electronic', label: 'Electr.', color: '#8B5CF6' },
   { id: 'organic', label: 'Orgánico', color: '#10B981' },
+  { id: 'other', label: 'Otro', color: '#6B7280' },
 ];
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -172,9 +168,40 @@ export default function MapScreen() {
   const [routeCoords, setRouteCoords] = useState<{latitude: number, longitude: number}[]>([]);
   const insets = useSafeAreaInsets();
 
+  // Supabase state
+  const [mapReports, setMapReports] = useState<ReportMock[]>([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+
+  const fetchMapReports = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('id, title, category, latitude, longitude')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching map reports:', error.message);
+      return;
+    }
+
+    const mapped: ReportMock[] = (data ?? []).map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      category: r.category as ReportCategory,
+      latitude: r.latitude,
+      longitude: r.longitude,
+    }));
+
+    setMapReports(mapped);
+  }, []);
+
+  useEffect(() => {
+    setLoadingReports(true);
+    fetchMapReports().finally(() => setLoadingReports(false));
+  }, [fetchMapReports]);
+
   const filteredReports = activeFilter === 'all' 
-    ? MOCK_REPORTS 
-    : MOCK_REPORTS.filter(r => r.category === activeFilter);
+    ? mapReports 
+    : mapReports.filter(r => r.category === activeFilter);
 
   const handleFilterPress = (catId: string) => {
     setActiveFilter(catId);
@@ -197,25 +224,18 @@ export default function MapScreen() {
   useFocusEffect(
     React.useCallback(() => {
       if (highlightedReportId) {
-        // Feed mocks have IDs like 'r1', 'r2', etc. Map mocks have '1', '2'.
-        // We'll try to find a match by extracting the number, or just pick the first one if no match.
-        const numMatch = highlightedReportId.replace(/\D/g, '');
-        const targetId = numMatch || '1';
-        
-        const reportToSelect = MOCK_REPORTS.find(r => r.id === targetId) || MOCK_REPORTS[0];
+        const reportToSelect = mapReports.find(r => r.id === highlightedReportId);
         
         if (reportToSelect) {
-          // Reset filters if category doesn't match
           if (activeFilter !== 'all' && activeFilter !== reportToSelect.category) {
             setActiveFilter('all');
           }
           handleSelectReport(reportToSelect);
         }
         
-        // Clear it so it doesn't re-trigger every time we visit the map
         clearHighlight();
       }
-    }, [highlightedReportId, activeFilter, clearHighlight])
+    }, [highlightedReportId, activeFilter, clearHighlight, mapReports])
   );
 
   const [loadingRoute, setLoadingRoute] = useState(false);
