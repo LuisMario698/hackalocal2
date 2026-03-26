@@ -326,6 +326,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    zIndex: 10,
   },
   // Header
   header: {
@@ -367,6 +368,7 @@ const styles = StyleSheet.create({
   // Messages
   messagesList: {
     paddingVertical: 16,
+    paddingBottom: 100,
     flexGrow: 1,
   },
   // Empty
