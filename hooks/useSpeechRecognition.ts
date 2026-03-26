@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Audio } from 'expo-av';
-import { supabase } from '../lib/supabase';
+import { Platform } from 'react-native';
 
 interface UseSpeechRecognitionProps {
   language?: string;
@@ -15,6 +15,55 @@ interface UseSpeechRecognitionResult {
   resetTranscript: () => void;
   error: string | null;
 }
+
+// Recording options that produce Whisper-compatible formats
+const RECORDING_OPTIONS: Audio.RecordingOptions = Platform.OS === 'ios'
+  ? {
+      isMeteringEnabled: true,
+      android: {
+        extension: '.m4a',
+        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+        audioEncoder: Audio.AndroidAudioEncoder.AAC,
+        sampleRate: 44100,
+        numberOfChannels: 1,
+        bitRate: 128000,
+      },
+      ios: {
+        extension: '.m4a',
+        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+        audioQuality: Audio.IOSAudioQuality.HIGH,
+        sampleRate: 44100,
+        numberOfChannels: 1,
+        bitRate: 128000,
+      },
+      web: {
+        mimeType: 'audio/webm',
+        bitsPerSecond: 128000,
+      },
+    }
+  : {
+      isMeteringEnabled: true,
+      android: {
+        extension: '.m4a',
+        outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+        audioEncoder: Audio.AndroidAudioEncoder.AAC,
+        sampleRate: 44100,
+        numberOfChannels: 1,
+        bitRate: 128000,
+      },
+      ios: {
+        extension: '.m4a',
+        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+        audioQuality: Audio.IOSAudioQuality.HIGH,
+        sampleRate: 44100,
+        numberOfChannels: 1,
+        bitRate: 128000,
+      },
+      web: {
+        mimeType: 'audio/webm',
+        bitsPerSecond: 128000,
+      },
+    };
 
 export const useSpeechRecognition = ({
   language = 'es',
@@ -34,16 +83,13 @@ export const useSpeechRecognition = ({
         return;
       }
 
-      // Habilitar modo de grabación en iOS
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
 
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      await recording.prepareToRecordAsync(RECORDING_OPTIONS);
       await recording.startAsync();
 
       recordingRef.current = recording;
@@ -62,6 +108,8 @@ export const useSpeechRecognition = ({
       setIsRecording(false);
 
       const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
       if (!uri) {
         setError('Error: no se grabó audio');
         return;
@@ -81,10 +129,9 @@ export const useSpeechRecognition = ({
         reader.readAsDataURL(blob);
       });
 
-      // Enviar a Edge Function (que tiene la API key de OpenAI)
+      // Enviar a Edge Function
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token || '';
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const transcribeResponse = await fetch(
         `${supabaseUrl}/functions/v1/transcribe-audio`,
@@ -92,15 +139,16 @@ export const useSpeechRecognition = ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            apikey: supabaseAnonKey,
           },
           body: JSON.stringify({ audio_base64: base64 }),
         }
       );
 
       if (!transcribeResponse.ok) {
-        const errorData = await transcribeResponse.json();
-        setError(`Error: ${errorData.error || 'desconocido'}`);
+        const errorData = await transcribeResponse.json().catch(() => ({}));
+        setError(`Error: ${errorData.error || 'No se pudo transcribir el audio'}`);
         return;
       }
 
