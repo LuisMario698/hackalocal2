@@ -9,7 +9,6 @@ import {
   TextInput,
   View,
   ScrollView,
-  Image,
   ActivityIndicator,
   Animated,
 } from 'react-native';
@@ -22,8 +21,6 @@ import { ChatMessage, useChat } from '../../hooks/useChat';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
-import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '../../lib/supabase';
 
 const SUGGESTIONS = [
   {
@@ -60,7 +57,6 @@ export default function ChatTabScreen() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const recordingScale = useRef(new Animated.Value(1)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
@@ -104,63 +100,10 @@ export default function ChatTabScreen() {
   }, [transcript, isRecording]);
 
   const handleSend = async () => {
-    if (!inputText.trim() && !selectedImage) return;
-
-    // Si hay imagen, subirla primero
-    let imageUrl: string | undefined;
-    if (selectedImage) {
-      try {
-        const filename = `${Date.now()}.jpg`;
-        const { data, error } = await supabase.storage
-          .from('report-photos')
-          .upload(filename, {
-            uri: selectedImage,
-            type: 'image/jpeg',
-            name: filename,
-          } as any);
-
-        if (error) throw error;
-
-        // Obtener URL pública
-        const { data: urlData } = supabase.storage
-          .from('report-photos')
-          .getPublicUrl(filename);
-        imageUrl = urlData.publicUrl;
-      } catch (err) {
-        console.error('Error uploading image:', err);
-        // Continuar sin imagen en caso de error
-      }
-    }
-
-    sendMessage(inputText, imageUrl);
+    if (!inputText.trim()) return;
+    sendMessage(inputText);
     setInputText('');
-    setSelectedImage(null);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
-
-  const takePhoto = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
   };
 
   const toggleMicrophone = async () => {
@@ -276,17 +219,6 @@ export default function ChatTabScreen() {
 
       {/* Input — cuando teclado cerrado: padding para tab bar. Cuando abierto: padding mínimo */}
       <View style={[styles.inputArea, { paddingBottom: keyboardVisible ? 12 : (90 + insets.bottom) }]}>
-        {selectedImage && (
-          <View style={styles.imagePreview}>
-            <Image source={{ uri: selectedImage }} style={styles.imageThumbnail} />
-            <Pressable
-              onPress={() => setSelectedImage(null)}
-              style={styles.removeImageBtn}
-            >
-              <Ionicons name="close" size={16} color="#FFF" />
-            </Pressable>
-          </View>
-        )}
         <View style={styles.inputBar}>
           <Animated.View style={{ transform: [{ scale: recordingScale }] }}>
             <Pressable
@@ -297,12 +229,6 @@ export default function ChatTabScreen() {
               <Ionicons name="mic" size={20} color={isRecording ? '#FFF' : Colors.primary} />
             </Pressable>
           </Animated.View>
-          <Pressable onPress={takePhoto} style={styles.iconBtn} disabled={isRecording}>
-            <Ionicons name="camera" size={20} color={Colors.primary} />
-          </Pressable>
-          <Pressable onPress={pickImage} style={styles.iconBtn} disabled={isRecording}>
-            <Ionicons name="image" size={20} color={Colors.primary} />
-          </Pressable>
           <TextInput
             style={styles.input}
             placeholder={isRecording ? 'Escuchando...' : isSttLoading ? 'Procesando...' : 'Escribe un mensaje...'}
@@ -317,9 +243,9 @@ export default function ChatTabScreen() {
             onPress={handleSend}
             style={[
               styles.sendBtn,
-              (!inputText.trim() && !selectedImage || isLoading) && styles.sendBtnDisabled,
+              (!inputText.trim() || isLoading) && styles.sendBtnDisabled,
             ]}
-            disabled={(!inputText.trim() && !selectedImage) || isLoading}
+            disabled={!inputText.trim() || isLoading}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="#FFF" />
@@ -449,26 +375,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-  },
-  imagePreview: {
-    marginBottom: 10,
-    position: 'relative',
-  },
-  imageThumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
-  },
-  removeImageBtn: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E63946',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   inputBar: {
     flexDirection: 'row',
