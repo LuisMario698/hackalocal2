@@ -1,6 +1,12 @@
 import { useState, useRef } from 'react';
 import { Platform } from 'react-native';
-import Voice from '@react-native-community/voice';
+
+let Voice: any = null;
+try {
+  Voice = require('@react-native-community/voice').default;
+} catch {
+  // Module not available in Expo Go — voice features will be disabled
+}
 
 interface UseSpeechRecognitionProps {
   language?: string;
@@ -81,6 +87,7 @@ export const useSpeechRecognition = ({
 
   // STT nativo para móvil (iOS/Android)
   const initMobileVoice = async () => {
+    if (!Voice) { setError('Reconocimiento de voz no disponible'); return; }
     try {
       await Voice.start(language);
       setIsRecording(true);
@@ -91,10 +98,10 @@ export const useSpeechRecognition = ({
   };
 
   const stopMobileVoice = async () => {
+    if (!Voice) return;
     try {
       setIsLoading(true);
       await Voice.stop();
-      // El resultado viene en el callback onSpeechResults
     } catch (err: any) {
       setError(`Error al detener STT: ${err.message}`);
     } finally {
@@ -114,10 +121,12 @@ export const useSpeechRecognition = ({
           webRecognitionRef.current = recognition;
           recognition.start();
         }
-      } else {
+      } else if (Voice) {
         // iOS/Android
         await Voice.start(language);
         setIsRecording(true);
+      } else {
+        setError('Reconocimiento de voz no disponible en Expo Go');
       }
     } catch (err: any) {
       setError(`Error iniciando grabación: ${err.message}`);
@@ -132,8 +141,7 @@ export const useSpeechRecognition = ({
         if (webRecognitionRef.current) {
           webRecognitionRef.current.stop();
         }
-      } else {
-        // iOS/Android - el resultado viene en el event listener
+      } else if (Voice) {
         await Voice.stop();
       }
     } catch (err: any) {
@@ -150,7 +158,7 @@ export const useSpeechRecognition = ({
   };
 
   // Setup Voice listeners para móvil
-  if (Platform.OS !== 'web') {
+  if (Platform.OS !== 'web' && Voice) {
     const setupVoiceListeners = () => {
       Voice.onSpeechStart = () => {
         setIsRecording(true);
