@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../contexts/AuthContext';
 
 function getTabMeta(routeName: string) {
   if (routeName === 'index') {
@@ -50,6 +51,15 @@ function getTabMeta(routeName: string) {
     };
   }
 
+  if (routeName === 'verify') {
+    return {
+      label: 'Verificar',
+      icon: (color: string, size: number) => (
+        <Ionicons name="shield-checkmark" size={size} color={color} />
+      ),
+    };
+  }
+
   return {
     label: routeName,
     icon: (color: string, size: number) => (
@@ -61,18 +71,28 @@ function getTabMeta(routeName: string) {
 function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { isVerifier } = useAuth();
+
+  // Filter out hidden tabs based on auth role
+  const visibleRoutes = state.routes.filter((route) => {
+    if (route.name === 'verify' && !isVerifier) return false;
+    return true;
+  });
+  const visibleIndex = visibleRoutes.findIndex((r) => r.key === state.routes[state.index]?.key);
+  const activeIndex = visibleIndex >= 0 ? visibleIndex : 0;
 
   const barSideMargin = 32;
   const innerPadding = 6;
-  const barWidth = Math.min(400, Math.max(280, width - barSideMargin * 2));
-  const segmentWidth = (barWidth - innerPadding * 2) / state.routes.length;
+  const tabCount = visibleRoutes.length;
+  const barWidth = Math.min(tabCount > 4 ? 440 : 400, Math.max(280, width - barSideMargin * 2));
+  const segmentWidth = (barWidth - innerPadding * 2) / tabCount;
 
-  const translateX = useRef(new Animated.Value(state.index * segmentWidth)).current;
+  const translateX = useRef(new Animated.Value(activeIndex * segmentWidth)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.spring(translateX, {
-      toValue: state.index * segmentWidth,
+      toValue: activeIndex * segmentWidth,
       friction: 8,
       tension: 80,
       useNativeDriver: true,
@@ -91,7 +111,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [pulseScale, segmentWidth, state.index, translateX]);
+  }, [pulseScale, segmentWidth, activeIndex, translateX]);
 
   const bottomSpace = useMemo(
     () => Math.max(insets.bottom, Platform.select({ ios: 8, android: 8, default: 8 }) ?? 8),
@@ -115,8 +135,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           <View style={styles.activePillTint} />
         </Animated.View>
 
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
+        {visibleRoutes.map((route, index) => {
+          const isFocused = activeIndex === index;
           const { options } = descriptors[route.key];
           const onPress = () => {
             const event = navigation.emit({
@@ -162,6 +182,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const { isVerifier } = useAuth();
+
   return (
     <Tabs
       screenOptions={{
@@ -186,6 +208,13 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: 'Reportes',
+        }}
+      />
+      <Tabs.Screen
+        name="verify"
+        options={{
+          title: 'Verificar',
+          href: isVerifier ? ('/verify' as any) : null,
         }}
       />
       <Tabs.Screen
