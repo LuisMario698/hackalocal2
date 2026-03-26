@@ -4,10 +4,12 @@ import { View } from 'react-native';
 import { MapHighlightProvider } from '../contexts/MapHighlightContext';
 import { FontSizeProvider } from '../contexts/FontSizeContext';
 import { AuthProvider } from '../contexts/AuthContext';
+import { LanguageProvider } from '../contexts/LanguageContext';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
+    <LanguageProvider>
     <FontSizeProvider>
     <MapHighlightProvider>
       <View style={{ flex: 1 }}>
@@ -32,6 +34,7 @@ export default function RootLayout() {
       </View>
     </MapHighlightProvider>
     </FontSizeProvider>
+    </LanguageProvider>
     </AuthProvider>
   );
 }

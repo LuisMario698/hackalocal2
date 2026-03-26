@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { File as ExpoFile } from 'expo-file-system';
@@ -24,6 +25,7 @@ export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile, user, refreshProfile } = useAuth();
+  const { t } = useLanguage();
 
   const [name, setName] = useState(profile?.name ?? '');
   const [email] = useState(user?.email ?? '');
@@ -69,7 +71,7 @@ export default function AccountScreen() {
             console.warn('Avatar upload error:', uploadError.message);
           }
         } catch (e: any) {
-          Alert.alert('Error foto', e?.message ?? 'No se pudo procesar la foto');
+          Alert.alert(t('acc_err_photo_title'), e?.message ?? t('acc_err_photo_desc'));
         }
       }
 
@@ -84,13 +86,13 @@ export default function AccountScreen() {
         .eq('id', user.id);
 
       if (error) {
-        Alert.alert('Error', error.message);
+        Alert.alert(t('error'), error.message);
       } else {
         await refreshProfile();
-        Alert.alert('Listo', 'Perfil actualizado correctamente');
+        Alert.alert(t('acc_success_title'), t('acc_success_desc'));
       }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo guardar');
+      Alert.alert(t('error'), e?.message ?? t('acc_err_save'));
     } finally {
       setSaving(false);
     }
@@ -106,7 +108,7 @@ export default function AccountScreen() {
     ? new Date(profile.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
 
-  const roleName = profile?.role === 'admin' ? 'Administrador' : profile?.role === 'association' ? 'Asociacion' : 'Ciudadano';
+  const roleName = profile?.role === 'admin' ? t('acc_role_admin') : profile?.role === 'association' ? t('acc_role_assoc') : t('acc_role_citizen');
 
   return (
     <ScrollView
@@ -119,7 +121,7 @@ export default function AccountScreen() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </Pressable>
-        <Text style={s.title}>Cuenta</Text>
+        <Text style={s.title}>{t('acc_title')}</Text>
       </View>
 
       {/* Avatar */}
@@ -136,22 +138,22 @@ export default function AccountScreen() {
         </Pressable>
         <Pressable onPress={pickAvatar} style={s.avatarBtn}>
           <Ionicons name="camera-outline" size={16} color={Colors.primary} />
-          <Text style={s.avatarBtnText}>Cambiar foto</Text>
+          <Text style={s.avatarBtnText}>{t('acc_change_photo')}</Text>
         </Pressable>
       </View>
 
       {/* Campos */}
       <View style={s.section}>
-        <Text style={s.label}>Nombre completo</Text>
+        <Text style={s.label}>{t('acc_name_label')}</Text>
         <TextInput
           style={s.input}
           value={name}
           onChangeText={setName}
-          placeholder="Tu nombre"
+          placeholder={t('acc_name_placeholder')}
           placeholderTextColor={Colors.textMuted}
         />
 
-        <Text style={s.label}>Correo electronico</Text>
+        <Text style={s.label}>{t('acc_email_label')}</Text>
         <TextInput
           style={[s.input, { backgroundColor: Colors.borderLight }]}
           value={email}
@@ -159,7 +161,7 @@ export default function AccountScreen() {
           placeholderTextColor={Colors.textMuted}
         />
 
-        <Text style={s.label}>Numero de contacto</Text>
+        <Text style={s.label}>{t('acc_phone_label')}</Text>
         <TextInput
           style={s.input}
           value={phone}
@@ -169,12 +171,12 @@ export default function AccountScreen() {
           keyboardType="phone-pad"
         />
 
-        <Text style={s.label}>Bio</Text>
+        <Text style={s.label}>{t('acc_bio_label')}</Text>
         <TextInput
           style={[s.input, s.inputMultiline]}
           value={bio}
           onChangeText={setBio}
-          placeholder="Cuentanos sobre ti"
+          placeholder={t('acc_bio_placeholder')}
           placeholderTextColor={Colors.textMuted}
           multiline
           numberOfLines={3}
@@ -185,12 +187,12 @@ export default function AccountScreen() {
       <View style={s.section}>
         <View style={s.infoRow}>
           <Ionicons name="shield-checkmark-outline" size={16} color={Colors.textSecondary} />
-          <Text style={s.infoLabel}>Rol</Text>
+          <Text style={s.infoLabel}>{t('acc_role_label')}</Text>
           <Text style={s.infoValue}>{roleName}</Text>
         </View>
         <View style={s.infoRow}>
           <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
-          <Text style={s.infoLabel}>Miembro desde</Text>
+          <Text style={s.infoLabel}>{t('acc_member_since')}</Text>
           <Text style={s.infoValue}>{memberSince}</Text>
         </View>
       </View>
@@ -200,7 +202,7 @@ export default function AccountScreen() {
         {saving ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={s.saveBtnText}>Guardar cambios</Text>
+          <Text style={s.saveBtnText}>{t('acc_save_btn')}</Text>
         )}
       </Pressable>
 

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Image,
 } from 'react-native';
 import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type Mode = 'login' | 'register';
 
@@ -22,6 +24,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signIn, signUp, skipLogin } = useAuth();
+  const { t } = useLanguage();
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -43,7 +46,7 @@ export default function LoginScreen() {
       error = await signIn(email.trim(), password.trim());
     } else {
       if (password.trim().length < 6) {
-        Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+        Alert.alert('Error', t('login_password_error'));
         setBusy(false);
         return;
       }
@@ -75,12 +78,13 @@ export default function LoginScreen() {
     >
       {/* Logo area */}
       <View style={s.logoArea}>
-        <View style={s.logoCircle}>
-          <Ionicons name="leaf" size={48} color="#fff" />
-        </View>
+        <Image 
+          source={require('../assets/logo.png')} 
+          style={s.logoImage} 
+        />
         <Text style={s.appName}>Social Clean</Text>
         <Text style={s.subtitle}>
-          {mode === 'login' ? 'Inicio de sesion' : 'Crear cuenta'}
+          {mode === 'login' ? t('login_title_login') : t('login_title_register')}
         </Text>
       </View>
 
@@ -90,13 +94,13 @@ export default function LoginScreen() {
           style={[s.toggleBtn, mode === 'login' && s.toggleBtnActive]}
           onPress={() => setMode('login')}
         >
-          <Text style={[s.toggleText, mode === 'login' && s.toggleTextActive]}>Iniciar sesion</Text>
+          <Text style={[s.toggleText, mode === 'login' && s.toggleTextActive]}>{t('login_btn_login')}</Text>
         </Pressable>
         <Pressable
           style={[s.toggleBtn, mode === 'register' && s.toggleBtnActive]}
           onPress={() => setMode('register')}
         >
-          <Text style={[s.toggleText, mode === 'register' && s.toggleTextActive]}>Registrarse</Text>
+          <Text style={[s.toggleText, mode === 'register' && s.toggleTextActive]}>{t('login_btn_register')}</Text>
         </Pressable>
       </View>
 
@@ -107,7 +111,7 @@ export default function LoginScreen() {
             <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
             <TextInput
               style={s.input}
-              placeholder="Nombre completo"
+              placeholder={t('login_placeholder_name')}
               placeholderTextColor={Colors.textMuted}
               value={name}
               onChangeText={setName}
@@ -121,7 +125,7 @@ export default function LoginScreen() {
           <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
           <TextInput
             style={s.input}
-            placeholder="Correo electronico"
+            placeholder={t('login_placeholder_email')}
             placeholderTextColor={Colors.textMuted}
             value={email}
             onChangeText={setEmail}
@@ -135,7 +139,7 @@ export default function LoginScreen() {
           <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
           <TextInput
             style={s.input}
-            placeholder="Contraseña"
+            placeholder={t('login_placeholder_password')}
             placeholderTextColor={Colors.textMuted}
             value={password}
             onChangeText={setPassword}
@@ -157,7 +161,7 @@ export default function LoginScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={s.loginBtnText}>
-              {mode === 'login' ? 'Iniciar sesion' : 'Crear cuenta'}
+              {mode === 'login' ? t('login_btn_login') : t('login_btn_register')}
             </Text>
           )}
         </Pressable>
@@ -167,18 +171,18 @@ export default function LoginScreen() {
       <View style={s.bottom}>
         <View style={s.divider}>
           <View style={s.dividerLine} />
-          <Text style={s.dividerText}>o</Text>
+          <Text style={s.dividerText}>{t('login_or')}</Text>
           <View style={s.dividerLine} />
         </View>
 
         <Pressable style={s.skipBtn} onPress={handleSkip}>
-          <Text style={s.skipBtnText}>Continuar como usuario</Text>
+          <Text style={s.skipBtnText}>{t('login_continue_guest')}</Text>
           <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
         </Pressable>
 
         <Pressable style={s.adminBtn} onPress={goToAdmin}>
           <Ionicons name="shield-half" size={18} color="#6B7280" />
-          <Text style={s.adminBtnText}>Panel de Administrador</Text>
+          <Text style={s.adminBtnText}>{t('login_admin_panel')}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -198,19 +202,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  logoCircle: {
+  logoImage: {
     width: 90,
     height: 90,
-    borderRadius: 45,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 22,
     marginBottom: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
   },
   appName: {
     fontSize: 30,

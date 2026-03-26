@@ -16,6 +16,7 @@ import { Colors } from '../../constants/Colors';
 import { BADGES, getUserLevel, getLevelProgress, getNextLevel } from '../../constants/Gamification';
 import BadgeCard from '../../components/BadgeCard';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { supabase } from '../../lib/supabase';
 
 interface LeaderboardEntry {
@@ -85,6 +86,7 @@ function MenuItem({ icon, label, subtitle, expanded, onPress, children, accentCo
 
 export default function ProfileScreen() {
   const { profile, user, signOut } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [openSection, setOpenSection] = useState<SectionId | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -94,7 +96,7 @@ export default function ProfileScreen() {
   const avatarUrl = profile?.avatar_url;
 
   // Derived from real profile or fallback
-  const userName = profile?.name ?? user?.user_metadata?.name ?? 'Usuario';
+  const userName = profile?.name ?? user?.user_metadata?.name ?? t('prof_fallback_name');
   const ecoPoints = profile?.eco_points ?? 0;
   const reportsCount = profile?.reports_count ?? 0;
   const tasksCompleted = profile?.tasks_completed ?? 0;
@@ -118,7 +120,7 @@ export default function ProfileScreen() {
       setLeaderboard(data.map((row: any, i: number) => ({
         rank: i + 1,
         userId: row.user_id,
-        name: row.profiles?.name ?? 'Anonimo',
+        name: row.profiles?.name ?? t('prof_anon_name'),
         ecoPoints: row.points,
         level: 1,
       })));
@@ -239,17 +241,17 @@ export default function ProfileScreen() {
         </View>
         <Text style={s.miniBarText}>
           {next
-            ? `${next.minPoints - ecoPoints} pts para ${next.name}`
-            : 'Nivel maximo alcanzado'}
+            ? t('prof_next_level_pts').replace('{0}', String(next.minPoints - ecoPoints)).replace('{1}', next.name)
+            : t('prof_max_level')}
         </Text>
       </View>
 
       {/* ===== STATS ROW (siempre visible) ===== */}
       <View style={s.statsRow}>
         {[
-          { val: reportsCount, label: 'Reportes', icon: 'location-outline' as const },
-          { val: tasksCompleted, label: 'Limpiezas', icon: 'leaf-outline' as const },
-          { val: `${streakDays}`, label: 'Racha', icon: 'flame-outline' as const },
+          { val: reportsCount, label: t('prof_stat_reports'), icon: 'location-outline' as const },
+          { val: tasksCompleted, label: t('prof_stat_tasks'), icon: 'leaf-outline' as const },
+          { val: `${streakDays}`, label: t('prof_stat_streak'), icon: 'flame-outline' as const },
         ].map(stat => (
           <View key={stat.label} style={s.statBox}>
             <Ionicons name={stat.icon} size={16} color={Colors.primary} style={{ marginBottom: 4 }} />
@@ -262,8 +264,8 @@ export default function ProfileScreen() {
       {/* ===== MENU SECCIONES ===== */}
       <MenuItem
         icon="trophy"
-        label="Medallas"
-        subtitle={`${unlockedBadgeIds.length} de ${BADGES.length} desbloqueadas`}
+        label={t('prof_badges_title')}
+        subtitle={t('prof_badges_unlocked').replace('{0}', String(unlockedBadgeIds.length)).replace('{1}', String(BADGES.length))}
         expanded={openSection === 'badges'}
         onPress={() => toggle('badges')}
       >
@@ -280,8 +282,8 @@ export default function ProfileScreen() {
 
       <MenuItem
         icon="podium"
-        label="Leaderboard"
-        subtitle="Top 10 del mes"
+        label={t('prof_leaderboard_title')}
+        subtitle={t('prof_leaderboard_subtitle')}
         expanded={openSection === 'leaderboard'}
         onPress={() => toggle('leaderboard')}
       >
@@ -304,8 +306,8 @@ export default function ProfileScreen() {
 
       <MenuItem
         icon="time"
-        label="Actividad reciente"
-        subtitle={`${history.length} acciones`}
+        label={t('prof_history_title')}
+        subtitle={t('prof_history_actions').replace('{0}', String(history.length))}
         expanded={openSection === 'history'}
         onPress={() => toggle('history')}
       >
@@ -333,7 +335,7 @@ export default function ProfileScreen() {
         <View style={s.settingsRowIcon}>
           <Ionicons name="settings-outline" size={20} color={Colors.primary} />
         </View>
-        <Text style={s.settingsRowLabel}>Configuracion</Text>
+        <Text style={s.settingsRowLabel}>{t('prof_settings')}</Text>
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </Pressable>
 
@@ -342,7 +344,7 @@ export default function ProfileScreen() {
         <View style={[s.settingsRowIcon, { backgroundColor: '#fde8e8' }]}>
           <Ionicons name="log-out-outline" size={20} color="#d32f2f" />
         </View>
-        <Text style={[s.settingsRowLabel, { color: '#d32f2f' }]}>Cerrar sesion</Text>
+        <Text style={[s.settingsRowLabel, { color: '#d32f2f' }]}>{t('prof_logout')}</Text>
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </Pressable>
 
