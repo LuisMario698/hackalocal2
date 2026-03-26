@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { Audio } from 'expo-av';
+import { supabase } from '../lib/supabase';
 
 interface UseSpeechRecognitionProps {
-  openaiApiKey: string;
   language?: string;
 }
 
@@ -17,9 +17,8 @@ interface UseSpeechRecognitionResult {
 }
 
 export const useSpeechRecognition = ({
-  openaiApiKey,
   language = 'es',
-}: UseSpeechRecognitionProps): UseSpeechRecognitionResult => {
+}: UseSpeechRecognitionProps = {}): UseSpeechRecognitionResult => {
   const [transcript, setTranscript] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -76,26 +75,26 @@ export const useSpeechRecognition = ({
         reader.readAsDataURL(blob);
       });
 
-      // Enviar a OpenAI Whisper
-      const formData = new FormData();
-      formData.append('file', new File([Buffer.from(base64, 'base64')], 'audio.wav', { type: 'audio/wav' }));
-      formData.append('model', 'whisper-1');
-      formData.append('language', language);
+      // Enviar a Edge Function (que tiene la API key de OpenAI)
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token || '';
 
       const transcribeResponse = await fetch(
-        'https://api.openai.com/v1/audio/transcriptions',
+        `${supabaseUrl}/functions/v1/transcribe-audio`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
-          body: formData,
+          body: JSON.stringify({ audio_base64: base64 }),
         }
       );
 
       if (!transcribeResponse.ok) {
         const errorData = await transcribeResponse.json();
-        setError(`Error OpenAI: ${errorData.error?.message || 'desconocido'}`);
+        setError(`Error: ${errorData.error || 'desconocido'}`);
         return;
       }
 
