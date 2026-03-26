@@ -14,7 +14,7 @@ import {
 import Text from '../../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Circle, Marker, Region } from 'react-native-maps';
+import ReportMapPicker from '../../components/ReportMapPicker';
 import * as ImagePicker from 'expo-image-picker';
 
 import { Colors } from '../../constants/Colors';
@@ -77,7 +77,7 @@ export default function ReportsScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [pinCoord, setPinCoord] = useState<{ latitude: number; longitude: number } | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   // User's reports from mock data
   const myReports = useMemo(
@@ -290,37 +290,14 @@ export default function ReportsScreen() {
           {/* Map location picker */}
           <Text style={s.label}>Ubicacion del reporte</Text>
           <Text style={s.hint}>Toca el mapa para colocar el pin (max {MAX_DISTANCE}m de ti)</Text>
-          <View style={s.mapWrap}>
-            <MapView
-              ref={mapRef}
-              style={s.map}
-              initialRegion={{
-                latitude: userLat,
-                longitude: userLng,
-                latitudeDelta: 0.012,
-                longitudeDelta: 0.012,
-              }}
-              showsUserLocation
-              onPress={handleMapPress}
-            >
-              {/* 500m radius circle */}
-              <Circle
-                center={{ latitude: userLat, longitude: userLng }}
-                radius={MAX_DISTANCE}
-                fillColor="rgba(29,158,117,0.10)"
-                strokeColor="rgba(29,158,117,0.35)"
-                strokeWidth={2}
-              />
-              {/* Selected pin */}
-              {pinCoord && (
-                <Marker
-                  coordinate={pinCoord}
-                  pinColor={Colors.accent}
-                  title="Ubicacion del reporte"
-                />
-              )}
-            </MapView>
-          </View>
+          <ReportMapPicker
+            userLat={userLat}
+            userLng={userLng}
+            pinCoord={pinCoord}
+            onPress={handleMapPress}
+            mapRef={mapRef}
+            maxDistance={MAX_DISTANCE}
+          />
           {pinError && (
             <View style={s.pinErrorRow}>
               <Ionicons name="alert-circle" size={16} color={Colors.error} />
