@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { useFontSize, FONT_STEP_COUNT } from '../contexts/FontSizeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function SettingsScreen() {
   const { signOut } = useAuth();
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const [radiusKm, setRadiusKm] = useState('2');
   const { step: fontStep, setStep: setFontStep, fs } = useFontSize();
   const [darkMode, setDarkMode] = useState(false);
+  const { language, setLanguage, t } = useLanguage();
   const trackWidthRef = useRef(0);
 
   const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
@@ -64,7 +66,7 @@ export default function SettingsScreen() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </Pressable>
-        <Text style={s.title}>Configuracion</Text>
+        <Text style={s.title}>{t('settings_title')}</Text>
       </View>
 
       {/* Cuenta — navega a pantalla de cuenta */}
@@ -76,8 +78,8 @@ export default function SettingsScreen() {
           <Ionicons name="person-outline" size={20} color={Colors.primary} />
         </View>
         <View style={s.linkText}>
-          <Text style={s.linkTitle}>Cuenta</Text>
-          <Text style={s.linkHint}>Nombre, foto, correo, telefono</Text>
+          <Text style={s.linkTitle}>{t('settings_account')}</Text>
+          <Text style={s.linkHint}>{t('settings_account_hint')}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </Pressable>
@@ -86,13 +88,13 @@ export default function SettingsScreen() {
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
-          <Text style={s.sectionTitle}>Notificaciones</Text>
+          <Text style={s.sectionTitle}>{t('settings_notifications')}</Text>
         </View>
 
         <View style={s.row}>
           <View style={s.rowText}>
-            <Text style={s.label}>Alertas de reportes cercanos</Text>
-            <Text style={s.hint}>Recibe notificaciones cuando haya reportes nuevos</Text>
+            <Text style={s.label}>{t('settings_notifications_alerts')}</Text>
+            <Text style={s.hint}>{t('settings_notifications_hint')}</Text>
           </View>
           <Switch
             value={notifications}
@@ -102,7 +104,7 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <Text style={s.label}>Radio de alertas (km)</Text>
+        <Text style={s.label}>{t('settings_radius')}</Text>
         <TextInput
           style={s.input}
           value={radiusKm}
@@ -117,7 +119,7 @@ export default function SettingsScreen() {
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Ionicons name="text-outline" size={18} color={Colors.primary} />
-          <Text style={s.sectionTitle}>Tamano de letra</Text>
+          <Text style={s.sectionTitle}>{t('settings_font_size')}</Text>
         </View>
 
         {/* Labels */}
@@ -156,7 +158,7 @@ export default function SettingsScreen() {
 
         {/* Preview */}
         <Text style={[s.hint, { fontSize: fs(14), marginTop: 14, textAlign: 'center' }]}>
-          Texto de ejemplo
+          {t('settings_example_text')}
         </Text>
       </View>
 
@@ -164,13 +166,13 @@ export default function SettingsScreen() {
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Ionicons name="moon-outline" size={18} color={Colors.primary} />
-          <Text style={s.sectionTitle}>Apariencia</Text>
+          <Text style={s.sectionTitle}>{t('settings_appearance')}</Text>
         </View>
 
         <View style={s.row}>
           <View style={s.rowText}>
-            <Text style={s.label}>Modo oscuro</Text>
-            <Text style={s.hint}>Tema oscuro en toda la app</Text>
+            <Text style={s.label}>{t('settings_dark_mode')}</Text>
+            <Text style={s.hint}>{t('settings_dark_hint')}</Text>
           </View>
           <Switch
             value={darkMode}
@@ -185,14 +187,20 @@ export default function SettingsScreen() {
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Ionicons name="language-outline" size={18} color={Colors.primary} />
-          <Text style={s.sectionTitle}>Idioma</Text>
+          <Text style={s.sectionTitle}>{t('settings_language')}</Text>
         </View>
 
         <View style={s.langRow}>
-          {['Espanol', 'Yaqui'].map(lang => (
-            <View key={lang} style={s.langChip}>
-              <Text style={s.langChipText}>{lang}</Text>
-            </View>
+          {(['es', 'yaq'] as const).map(lang => (
+            <Pressable 
+              key={lang} 
+              style={[s.langChip, language === lang && s.langChipActive]}
+              onPress={() => setLanguage(lang)}
+            >
+              <Text style={[s.langChipText, language === lang && s.langChipTextActive]}>
+                {lang === 'es' ? t('settings_language_es') : t('settings_language_yaq')}
+              </Text>
+            </Pressable>
           ))}
         </View>
       </View>
@@ -203,7 +211,7 @@ export default function SettingsScreen() {
         router.replace('/login' as any);
       }}>
         <Ionicons name="log-out-outline" size={18} color={Colors.error} />
-        <Text style={s.logoutText}>Cerrar sesion</Text>
+        <Text style={s.logoutText}>{t('settings_logout')}</Text>
       </Pressable>
 
       <View style={{ height: 100 }} />
@@ -305,10 +313,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
+  langChipActive: {
+    backgroundColor: Colors.primary,
+  },
   langChipText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  langChipTextActive: {
+    color: '#fff',
   },
   logoutBtn: {
     flexDirection: 'row',

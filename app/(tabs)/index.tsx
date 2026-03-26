@@ -22,24 +22,24 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const PRIMARY = '#1D9E75';
-const FILTERS = ['Todos', 'Recientes', 'Cercanos', 'Mas apoyados'];
 const FILTER_KEYS = ['todos', 'recientes', 'cercanos', 'apoyados'];
 
-function formatTimeAgo(dateStr: string): string {
+function formatTimeAgo(dateStr: string, t: (k: string) => string): string {
   const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'Ahora';
-  if (diffMin < 60) return `Hace ${diffMin} min`;
+  if (diffMin < 1) return t('time_now');
+  if (diffMin < 60) return `${t('time_ago')} ${diffMin} ${t('time_min')}`;
   const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+  if (diffHours < 24) return `${t('time_ago')} ${diffHours} ${diffHours > 1 ? t('time_hours') : t('time_hour')}`;
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `Hace ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+  if (diffDays < 7) return `${t('time_ago')} ${diffDays} ${diffDays > 1 ? t('time_days') : t('time_day')}`;
   const diffWeeks = Math.floor(diffDays / 7);
-  return `Hace ${diffWeeks} semana${diffWeeks > 1 ? 's' : ''}`;
+  return `${t('time_ago')} ${diffWeeks} ${diffWeeks > 1 ? t('time_weeks') : t('time_week')}`;
 }
 
 function getInitials(name: string): string {
@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { setHighlightedReportId } = useMapHighlight();
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -87,9 +88,9 @@ export default function HomeScreen() {
     const mapped: ReportData[] = (data ?? []).map((r: any) => ({
       id: r.id,
       userId: r.user_id,
-      userName: r.profiles?.name ?? 'Usuario',
-      userInitials: getInitials(r.profiles?.name ?? 'U'),
-      timeAgo: formatTimeAgo(r.created_at),
+      userName: r.profiles?.name ?? t('user_guest'),
+      userInitials: getInitials(r.profiles?.name ?? t('user_guest')),
+      timeAgo: formatTimeAgo(r.created_at, t),
       category: r.category,
       status: r.status,
       title: r.title,
@@ -137,9 +138,9 @@ export default function HomeScreen() {
     const mapped: PostData[] = (data ?? []).map((p: any) => ({
       id: p.id,
       reportId: p.report_id ?? null,
-      userName: p.profiles?.name ?? 'Usuario',
-      userInitials: getInitials(p.profiles?.name ?? 'U'),
-      timeAgo: formatTimeAgo(p.created_at),
+      userName: p.profiles?.name ?? t('user_guest'),
+      userInitials: getInitials(p.profiles?.name ?? t('user_guest')),
+      timeAgo: formatTimeAgo(p.created_at, t),
       type: p.type,
       priority: p.priority,
       title: p.title,
@@ -165,18 +166,18 @@ export default function HomeScreen() {
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchReports(), fetchPosts()]).finally(() => setLoading(false));
-  }, [fetchReports, fetchPosts]);
+  }, [fetchReports, fetchPosts, t]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     Promise.all([fetchReports(), fetchPosts()]).finally(() => setRefreshing(false));
-  }, [fetchReports, fetchPosts]);
+  }, [fetchReports, fetchPosts, t]);
 
   // Create post handler
   const handleCreatePost = useCallback(async (data: { title: string; content: string; type: string }) => {
     const userId = user?.id;
     if (!userId) {
-      Alert.alert('Error', 'Debes iniciar sesion para publicar');
+      Alert.alert(t('error'), t('post_create_error_auth'));
       return;
     }
 
@@ -189,7 +190,7 @@ export default function HomeScreen() {
     } as any);
 
     if (error) {
-      Alert.alert('Error', 'No se pudo crear la publicacion');
+      Alert.alert(t('error'), t('post_create_error_fail'));
       throw error;
     }
 
@@ -304,7 +305,7 @@ export default function HomeScreen() {
         userName: profile?.name ?? 'Tu',
         userInitials: getInitials(profile?.name ?? 'Tu'),
         text,
-        timeAgo: 'Ahora',
+        timeAgo: t('time_now'),
       };
       setCommentsMap((prev) => ({
         ...prev,
@@ -399,7 +400,7 @@ export default function HomeScreen() {
         userName: profile?.name ?? 'Tu',
         userInitials: getInitials(profile?.name ?? 'Tu'),
         text,
-        timeAgo: 'Ahora',
+        timeAgo: t('time_now'),
       };
       setCommentsMap((prev) => ({
         ...prev,
@@ -437,8 +438,8 @@ export default function HomeScreen() {
       >
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.headerTitle}>Social Clean</Text>
-            <Text style={styles.headerSubtitle}>Feed de la comunidad</Text>
+            <Text style={styles.headerTitle}>{t('social_clean')}</Text>
+            <Text style={styles.headerSubtitle}>{t('home_feed_title')}</Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable style={styles.iconButton} onPress={() => setSearchVisible(true)}>
@@ -464,7 +465,7 @@ export default function HomeScreen() {
           style={styles.filtersScroll}
           contentContainerStyle={styles.filtersContainer}
         >
-          {FILTERS.map((label, index) => {
+          {[t('home_filter_all'), t('home_filter_recent'), t('home_filter_nearby'), t('home_filter_supported')].map((label, index) => {
             const isActive = activeFilter === index;
             return (
               <Pressable
