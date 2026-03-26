@@ -18,7 +18,7 @@ export interface MockUser {
 }
 
 export const CURRENT_USER: MockUser = {
-  id: 'user-001',
+  id: '00000000-0000-0000-0000-000000000001',
   name: 'Esteban García',
   avatarUrl: null,
   role: 'citizen',
