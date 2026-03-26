@@ -5,9 +5,9 @@ import {
   Pressable,
   Share,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import Text from '../ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';

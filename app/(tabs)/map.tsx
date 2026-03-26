@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import Text from '../../components/ScaledText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapComponent from '../../components/MapComponent';
 import { useUserLocation } from '../../hooks/useUserLocation';

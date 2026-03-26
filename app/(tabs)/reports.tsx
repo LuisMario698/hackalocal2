@@ -7,11 +7,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   UIManager,
   View,
 } from 'react-native';
+import Text from '../../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Circle, Marker, Region } from 'react-native-maps';
@@ -194,19 +194,12 @@ export default function ReportsScreen() {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.headerTitle}>{showForm ? 'Nuevo reporte' : 'Mis reportes'}</Text>
-        <Pressable
-          style={[s.headerBtn, showForm && s.headerBtnCancel]}
-          onPress={() => (showForm ? resetForm() : setShowForm(true))}
-        >
-          <Ionicons
-            name={showForm ? 'close' : 'add'}
-            size={20}
-            color={showForm ? Colors.error : '#fff'}
-          />
-          <Text style={[s.headerBtnText, showForm && s.headerBtnTextCancel]}>
-            {showForm ? 'Cancelar' : 'Reportar'}
-          </Text>
-        </Pressable>
+        {showForm && (
+          <Pressable style={s.headerBtnCancel} onPress={resetForm}>
+            <Ionicons name="close" size={20} color={Colors.error} />
+            <Text style={s.headerBtnTextCancel}>Cancelar</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* ═══ LIST VIEW ═══ */}
@@ -383,6 +376,13 @@ export default function ReportsScreen() {
           <View style={{ height: 120 }} />
         </ScrollView>
       )}
+
+      {/* FAB */}
+      {!showForm && (
+        <Pressable style={s.fab} onPress={() => setShowForm(true)}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -402,20 +402,34 @@ const s = StyleSheet.create({
     paddingVertical: 14,
   },
   headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  headerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerBtnCancel: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FEF2F2',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  headerBtnCancel: {
-    backgroundColor: '#FEF2F2',
+  headerBtnTextCancel: { fontSize: 13, fontWeight: '700' as const, color: Colors.error },
+
+  // FAB
+  fab: {
+    position: 'absolute' as const,
+    bottom: 120,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
-  headerBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  headerBtnTextCancel: { color: Colors.error },
 
   // List
   listContent: { paddingHorizontal: 20 },

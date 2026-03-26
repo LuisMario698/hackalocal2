@@ -1,26 +1,56 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   View,
+  PanResponder,
+  LayoutChangeEvent,
 } from 'react-native';
+import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useFontSize, FONT_STEP_COUNT } from '../contexts/FontSizeContext';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [radiusKm, setRadiusKm] = useState('2');
-  const [accessible, setAccessible] = useState(false);
+  const { step: fontStep, setStep: setFontStep, fs } = useFontSize();
   const [darkMode, setDarkMode] = useState(false);
+  const trackWidthRef = useRef(0);
+
+  const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
+    trackWidthRef.current = e.nativeEvent.layout.width;
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (_, gestureState) => {
+        snapToStep(gestureState.x0);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        snapToStep(gestureState.moveX);
+      },
+    })
+  ).current;
+
+  const trackRef = useRef<View>(null);
+  const snapToStep = (pageX: number) => {
+    trackRef.current?.measureInWindow((x, _y, width) => {
+      const rel = Math.max(0, Math.min(pageX - x, width));
+      const step = Math.round((rel / width) * (FONT_STEP_COUNT - 1));
+      setFontStep(step);
+    });
+  };
 
   return (
     <ScrollView
@@ -81,25 +111,51 @@ export default function SettingsScreen() {
         />
       </View>
 
-      {/* Accesibilidad */}
+      {/* Accesibilidad — Tamano de letra */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="accessibility-outline" size={18} color={Colors.primary} />
-          <Text style={s.sectionTitle}>Accesibilidad</Text>
+          <Ionicons name="text-outline" size={18} color={Colors.primary} />
+          <Text style={s.sectionTitle}>Tamano de letra</Text>
         </View>
 
-        <View style={s.row}>
-          <View style={s.rowText}>
-            <Text style={s.label}>Modo accesible</Text>
-            <Text style={s.hint}>Textos grandes y alto contraste</Text>
-          </View>
-          <Switch
-            value={accessible}
-            onValueChange={setAccessible}
-            trackColor={{ false: Colors.border, true: Colors.primary }}
-            thumbColor="#fff"
-          />
+        {/* Labels */}
+        <View style={s.sliderLabels}>
+          <Text style={{ fontSize: 11, color: Colors.textMuted }}>A</Text>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: Colors.textMuted }}>A</Text>
         </View>
+
+        {/* Track + Dots */}
+        <View
+          ref={trackRef}
+          style={s.sliderTrack}
+          onLayout={onTrackLayout}
+          {...panResponder.panHandlers}
+        >
+          <View style={s.sliderRail} />
+          <View style={[s.sliderRailFill, { width: `${(fontStep / (FONT_STEP_COUNT - 1)) * 100}%` }]} />
+          {Array.from({ length: FONT_STEP_COUNT }).map((_, i) => {
+            const left = `${(i / (FONT_STEP_COUNT - 1)) * 100}%` as `${number}%`;
+            const active = i <= fontStep;
+            const isCurrent = i === fontStep;
+            return (
+              <Pressable
+                key={i}
+                onPress={() => setFontStep(i)}
+                style={[
+                  s.sliderDot,
+                  { left },
+                  active && s.sliderDotActive,
+                  isCurrent && s.sliderDotCurrent,
+                ]}
+              />
+            );
+          })}
+        </View>
+
+        {/* Preview */}
+        <Text style={[s.hint, { fontSize: fs(14), marginTop: 14, textAlign: 'center' }]}>
+          Texto de ejemplo
+        </Text>
       </View>
 
       {/* Apariencia */}
@@ -300,5 +356,61 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+
+  // ===== Font size slider =====
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  sliderTrack: {
+    height: 32,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  sliderRail: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+  },
+  sliderRailFill: {
+    position: 'absolute',
+    left: 0,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
+  },
+  sliderDot: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.border,
+    marginLeft: -7,
+    top: 9,
+  },
+  sliderDotActive: {
+    backgroundColor: Colors.primary,
+  },
+  sliderDotCurrent: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    marginLeft: -11,
+    top: 5,
+    backgroundColor: Colors.primary,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });
