@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
@@ -9,6 +10,7 @@ import {
 import Text from '../ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
 
 const COLORS = {
   primary: '#1D9E75',
@@ -21,106 +23,27 @@ const COLORS = {
 
 interface NotificationItem {
   id: string;
-  type: 'like' | 'comment' | 'report' | 'join' | 'resolved';
-  userName: string;
-  userInitials: string;
-  message: string;
+  type: string;
+  title: string;
+  body: string;
   timeAgo: string;
   read: boolean;
 }
 
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'n1',
-    type: 'like',
-    userName: 'Pedro Gomez',
-    userInitials: 'PG',
-    message: 'le dio apoyo a tu reporte "Acumulacion de basura en playa norte"',
-    timeAgo: 'Hace 5 min',
-    read: false,
-  },
-  {
-    id: 'n2',
-    type: 'comment',
-    userName: 'Laura Rios',
-    userInitials: 'LR',
-    message: 'comento en "Acumulacion de basura en playa norte": "Ya reporte esto al municipio..."',
-    timeAgo: 'Hace 10 min',
-    read: false,
-  },
-  {
-    id: 'n3',
-    type: 'join',
-    userName: 'Carlos Mendoza',
-    userInitials: 'CM',
-    message: 'se unio a la tarea del reporte "Contaminacion en arroyo municipal"',
-    timeAgo: 'Hace 30 min',
-    read: false,
-  },
-  {
-    id: 'n4',
-    type: 'report',
-    userName: 'Ana Torres',
-    userInitials: 'AT',
-    message: 'publico un nuevo reporte cerca de tu ubicacion: "Aves marinas atrapadas en redes"',
-    timeAgo: 'Hace 2 horas',
-    read: true,
-  },
-  {
-    id: 'n5',
-    type: 'resolved',
-    userName: 'Municipio de Guaymas',
-    userInitials: 'MG',
-    message: 'marco como resuelto el reporte "Residuos organicos en mercado local"',
-    timeAgo: 'Hace 5 horas',
-    read: true,
-  },
-  {
-    id: 'n6',
-    type: 'like',
-    userName: 'Fernando Castillo',
-    userInitials: 'FC',
-    message: 'y 12 personas mas dieron apoyo a "Tortugas marinas en zona de anidacion"',
-    timeAgo: 'Hace 8 horas',
-    read: true,
-  },
-  {
-    id: 'n7',
-    type: 'comment',
-    userName: 'Patricia Vega',
-    userInitials: 'PV',
-    message: 'comento en "Fuga de agua tratada": "Excelente respuesta de la planta tratadora..."',
-    timeAgo: 'Hace 20 horas',
-    read: true,
-  },
-  {
-    id: 'n8',
-    type: 'join',
-    userName: 'Roberto Diaz',
-    userInitials: 'RD',
-    message: 'se unio a la jornada de limpieza en Playa Miramar este sabado',
-    timeAgo: 'Hace 1 dia',
-    read: true,
-  },
-  {
-    id: 'n9',
-    type: 'report',
-    userName: 'Jorge Ramirez',
-    userInitials: 'JR',
-    message: 'publico un nuevo reporte: "Basura acumulada en canal pluvial"',
-    timeAgo: 'Hace 1 dia',
-    read: true,
-  },
-  {
-    id: 'n10',
-    type: 'resolved',
-    userName: 'Proteccion Civil',
-    userInitials: 'PC',
-    message: 'verifico la limpieza del reporte "Fuga de agua tratada cerca de estero". +50 ecopuntos',
-    timeAgo: 'Hace 2 dias',
-    read: true,
-  },
-];
+function formatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Ahora';
+  if (diffMin < 60) return `Hace ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `Hace ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `Hace ${diffWeeks} semana${diffWeeks > 1 ? 's' : ''}`;
+}
 
 function getNotifIcon(type: string): { name: string; color: string; bg: string } {
   switch (type) {
@@ -134,18 +57,13 @@ function getNotifIcon(type: string): { name: string; color: string; bg: string }
       return { name: 'people', color: COLORS.primary, bg: COLORS.primary + '15' };
     case 'resolved':
       return { name: 'checkmark-circle', color: COLORS.primary, bg: COLORS.primary + '15' };
+    case 'badge':
+      return { name: 'ribbon', color: '#BA7517', bg: '#BA751715' };
+    case 'points':
+      return { name: 'star', color: '#BA7517', bg: '#BA751715' };
     default:
-      return { name: 'ellipse', color: COLORS.textTertiary, bg: '#F3F4F6' };
+      return { name: 'notifications', color: COLORS.textTertiary, bg: '#F3F4F6' };
   }
-}
-
-function getAvatarColor(name: string): string {
-  const greens = ['#1D9E75', '#16a34a', '#15803d', '#0d9488', '#059669', '#047857'];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return greens[Math.abs(hash) % greens.length];
 }
 
 interface NotificationsSheetProps {
@@ -158,7 +76,53 @@ export default function NotificationsSheet({
   onClose,
 }: NotificationsSheetProps) {
   const insets = useSafeAreaInsets();
-  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => !n.read).length;
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifications = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.warn('Error fetching notifications:', error.message);
+      return;
+    }
+
+    const mapped: NotificationItem[] = (data ?? []).map((n: any) => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      body: n.body ?? '',
+      timeAgo: formatTimeAgo(n.created_at),
+      read: n.is_read,
+    }));
+
+    setNotifications(mapped);
+  }, []);
+
+  useEffect(() => {
+    if (visible) {
+      setLoading(true);
+      fetchNotifications().finally(() => setLoading(false));
+    }
+  }, [visible, fetchNotifications]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .in('id', unreadIds);
+  }, [notifications]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <Modal
@@ -181,45 +145,58 @@ export default function NotificationsSheet({
               </Text>
             )}
           </View>
-          <Pressable style={styles.markReadBtn}>
+          <Pressable style={styles.markReadBtn} onPress={handleMarkAllRead}>
             <Text style={styles.markReadText}>Marcar leidas</Text>
           </Pressable>
         </View>
 
-        {/* Notifications list */}
-        <FlatList
-          data={MOCK_NOTIFICATIONS}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const icon = getNotifIcon(item.type);
-            return (
-              <Pressable
-                style={[
-                  styles.notifRow,
-                  !item.read && styles.notifUnread,
-                ]}
-              >
-                <View style={styles.notifLeft}>
-                  <View style={[styles.notifAvatar, { backgroundColor: getAvatarColor(item.userName) }]}>
-                    <Text style={styles.notifAvatarText}>{item.userInitials}</Text>
+        {/* Content */}
+        {loading && notifications.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : notifications.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={56} color={COLORS.textTertiary} />
+            <Text style={styles.emptyTitle}>Sin notificaciones</Text>
+            <Text style={styles.emptySubtitle}>
+              Aqui aparecerán las actualizaciones de tus reportes y la comunidad
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const icon = getNotifIcon(item.type);
+              return (
+                <Pressable
+                  style={[
+                    styles.notifRow,
+                    !item.read && styles.notifUnread,
+                  ]}
+                >
+                  <View style={styles.notifLeft}>
+                    <View style={[styles.notifIconCircle, { backgroundColor: icon.bg }]}>
+                      <Ionicons name={icon.name as any} size={20} color={icon.color} />
+                    </View>
                   </View>
-                  <View style={[styles.notifIconBadge, { backgroundColor: icon.bg }]}>
-                    <Ionicons name={icon.name as any} size={12} color={icon.color} />
+                  <View style={styles.notifContent}>
+                    <Text style={styles.notifTitle}>{item.title}</Text>
+                    {item.body ? (
+                      <Text style={styles.notifMessage} numberOfLines={2}>
+                        {item.body}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.notifTime}>{item.timeAgo}</Text>
                   </View>
-                </View>
-                <View style={styles.notifContent}>
-                  <Text style={styles.notifMessage}>
-                    <Text style={styles.notifUserName}>{item.userName}</Text>
-                    {' '}{item.message}
-                  </Text>
-                  <Text style={styles.notifTime}>{item.timeAgo}</Text>
-                </View>
-                {!item.read && <View style={styles.unreadDot} />}
-              </Pressable>
-            );
-          }}
-        />
+                  {!item.read && <View style={styles.unreadDot} />}
+                </Pressable>
+              );
+            }}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -283,41 +260,27 @@ const styles = StyleSheet.create({
   notifLeft: {
     position: 'relative',
   },
-  notifAvatar: {
+  notifIconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notifAvatarText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  notifIconBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
   notifContent: {
     flex: 1,
   },
-  notifMessage: {
+  notifTitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  notifUserName: {
     fontWeight: '700',
     color: COLORS.textPrimary,
+    lineHeight: 20,
+  },
+  notifMessage: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    marginTop: 2,
   },
   notifTime: {
     fontSize: 12,
@@ -329,5 +292,25 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.primary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingBottom: 80,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });
