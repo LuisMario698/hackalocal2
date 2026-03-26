@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -61,6 +62,22 @@ export default function ChatTabScreen() {
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const recordingScale = useRef(new Animated.Value(1)).current;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // STT con OpenAI Whisper (Edge Function con API key en Supabase)
   const {
@@ -191,7 +208,7 @@ export default function ChatTabScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -263,8 +280,8 @@ export default function ChatTabScreen() {
         </View>
       )}
 
-      {/* Input */}
-      <View style={[styles.inputArea, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      {/* Input — cuando teclado cerrado: padding para tab bar. Cuando abierto: padding mínimo */}
+      <View style={[styles.inputArea, { paddingBottom: keyboardVisible ? 12 : (90 + insets.bottom) }]}>
         {selectedImage && (
           <View style={styles.imagePreview}>
             <Image source={{ uri: selectedImage }} style={styles.imageThumbnail} />
@@ -326,7 +343,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    zIndex: 10,
   },
   // Header
   header: {
@@ -367,8 +383,8 @@ const styles = StyleSheet.create({
   },
   // Messages
   messagesList: {
-    paddingVertical: 16,
-    paddingBottom: 100,
+    paddingTop: 16,
+    paddingBottom: 16,
     flexGrow: 1,
   },
   // Empty
