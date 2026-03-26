@@ -62,7 +62,9 @@ export default function ChatTabScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const recordingScale = useRef(new Animated.Value(1)).current;
 
-  // STT nativo (Web Speech API + iOS/Android)
+  // STT con OpenAI Whisper (expo-av + API)
+  const openaiApiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+
   const {
     transcript,
     isRecording,
@@ -70,7 +72,10 @@ export default function ChatTabScreen() {
     startRecording,
     stopRecording,
     error: sttError,
-  } = useSpeechRecognition({ language: 'es-ES' });
+  } = useSpeechRecognition({
+    openaiApiKey,
+    language: 'es',
+  });
 
   // Mapeo de rol mock → rol DB
   const roleMap: Record<string, 'client' | 'association' | 'admin'> = {
