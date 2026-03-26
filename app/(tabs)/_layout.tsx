@@ -50,6 +50,15 @@ function getTabMeta(routeName: string) {
     };
   }
 
+  if (routeName === 'aprende') {
+    return {
+      label: 'Aprende',
+      icon: (color: string, size: number) => (
+        <Ionicons name="book" size={size} color={color} />
+      ),
+    };
+  }
+
   return {
     label: routeName,
     icon: (color: string, size: number) => (
@@ -62,9 +71,9 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  const barSideMargin = 32;
+  const barSideMargin = 16; // reduced from 32 to give more width to the tabs
   const innerPadding = 6;
-  const barWidth = Math.min(400, Math.max(280, width - barSideMargin * 2));
+  const barWidth = Math.min(420, Math.max(300, width - barSideMargin * 2));
   const segmentWidth = (barWidth - innerPadding * 2) / state.routes.length;
 
   const translateX = useRef(new Animated.Value(state.index * segmentWidth)).current;
@@ -186,6 +195,12 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: 'Reportes',
+        }}
+      />
+      <Tabs.Screen
+        name="aprende"
+        options={{
+          title: 'Aprende',
         }}
       />
       <Tabs.Screen
