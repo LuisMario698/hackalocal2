@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { File as ExpoFile } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import type { Report } from '../lib/database.types';
 
@@ -50,22 +51,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   organic: 'Organico',
   other: 'Otro',
 };
-
-function uriToBase64(uri: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = () => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(xhr.response);
-    };
-    xhr.onerror = () => reject(new Error('No se pudo leer la imagen'));
-    xhr.responseType = 'blob';
-    xhr.open('GET', uri, true);
-    xhr.send(null);
-  });
-}
 
 type Step = 'details' | 'in_progress' | 'proof' | 'submitted';
 
@@ -187,12 +172,32 @@ export default function AttendReportScreen() {
     if (!report || !user || !proofPhotoUri) return;
     setSubmitting(true);
     try {
-      // Convert photo to base64
+      // Upload proof photo to Supabase Storage
       let photoAfterUrl: string | null = null;
       try {
-        photoAfterUrl = await uriToBase64(proofPhotoUri);
+        const fileName = `proof-${report.id}-${Date.now()}.jpg`;
+        const file = new ExpoFile(proofPhotoUri);
+        const arrayBuffer = await file.arrayBuffer();
+        const { error: uploadError } = await supabase.storage
+          .from('report-photos')
+          .upload(fileName, arrayBuffer, { contentType: 'image/jpeg' });
+
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('report-photos')
+            .getPublicUrl(fileName);
+          photoAfterUrl = urlData.publicUrl;
+        } else {
+          console.warn('Proof photo upload error:', uploadError.message);
+        }
       } catch {
         Alert.alert('Error', 'No se pudo procesar la foto');
+        setSubmitting(false);
+        return;
+      }
+
+      if (!photoAfterUrl) {
+        Alert.alert('Error', 'No se pudo subir la foto de evidencia');
         setSubmitting(false);
         return;
       }

@@ -26,6 +26,7 @@ import { useUserLocation } from '../../hooks/useUserLocation';
 import { haversineMeters } from '../../utils/geo';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { File } from 'expo-file-system';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -231,6 +232,30 @@ export default function ReportsScreen() {
         return;
       }
 
+      // Upload photo to Supabase Storage
+      let publicPhotoUrl: string | null = null;
+      if (photoUri) {
+        try {
+          const fileName = `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+          const file = new File(photoUri);
+          const arrayBuffer = await file.arrayBuffer();
+          const { error: uploadError } = await supabase.storage
+            .from('report-photos')
+            .upload(fileName, arrayBuffer, { contentType: 'image/jpeg' });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
+              .from('report-photos')
+              .getPublicUrl(fileName);
+            publicPhotoUrl = urlData.publicUrl;
+          } else {
+            console.warn('Photo upload error:', uploadError.message);
+          }
+        } catch (e) {
+          console.warn('Photo upload failed:', e);
+        }
+      }
+
       const { error } = await supabase.from('reports').insert({
         user_id: profileId,
         title: title.trim(),
@@ -240,7 +265,7 @@ export default function ReportsScreen() {
         latitude: pinCoord.latitude,
         longitude: pinCoord.longitude,
         address: '',
-        photo_url: photoUri,
+        photo_url: publicPhotoUrl ?? photoUri,
       } as any);
 
       if (error) {

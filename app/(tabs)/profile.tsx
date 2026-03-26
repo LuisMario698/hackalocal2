@@ -177,7 +177,11 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    await signOut();
+    try {
+      await signOut();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
     router.replace('/login' as any);
   };
 

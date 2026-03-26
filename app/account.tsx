@@ -18,22 +18,7 @@ import { Colors } from '../constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-
-function uriToBase64(uri: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = () => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(xhr.response);
-    };
-    xhr.onerror = () => reject(new Error('No se pudo leer la imagen'));
-    xhr.responseType = 'blob';
-    xhr.open('GET', uri, true);
-    xhr.send(null);
-  });
-}
+import { File as ExpoFile } from 'expo-file-system';
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -65,10 +50,24 @@ export default function AccountScreen() {
     try {
       let newAvatarUrl = profile?.avatar_url ?? null;
 
-      // Convert avatar to base64 data URI if changed
+      // Upload avatar to Supabase Storage if changed
       if (avatarUri && avatarUri !== profile?.avatar_url) {
         try {
-          newAvatarUrl = await uriToBase64(avatarUri);
+          const fileName = `avatar-${user.id}-${Date.now()}.jpg`;
+          const file = new ExpoFile(avatarUri);
+          const arrayBuffer = await file.arrayBuffer();
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+            newAvatarUrl = urlData.publicUrl;
+          } else {
+            console.warn('Avatar upload error:', uploadError.message);
+          }
         } catch (e: any) {
           Alert.alert('Error foto', e?.message ?? 'No se pudo procesar la foto');
         }

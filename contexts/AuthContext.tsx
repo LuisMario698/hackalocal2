@@ -13,6 +13,9 @@ export interface Profile {
   reports_count: number;
   tasks_completed: number;
   streak_days: number;
+  phone: string | null;
+  bio: string | null;
+  created_at: string;
 }
 
 interface AuthCtx {
@@ -134,7 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('[Auth] signOut remote error (ignored):', e);
+    }
     setSession(null);
     setProfile(null);
     setIsVerifier(false);
