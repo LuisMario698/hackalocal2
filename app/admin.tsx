@@ -80,9 +80,10 @@ function getReferenceImage(category: string, kind: 'report' | 'action') {
 }
 const SIDEBAR_W = 240;
 
-// Nav order: Registrar first
-type Section = 'registrar'|'ciudadanos'|'reportes'|'acciones';
+// Nav order: Dashboard first
+type Section = 'dashboard'|'registrar'|'ciudadanos'|'reportes'|'acciones';
 const NAV: { id:Section; label:string; icon:string; color:string }[] = [
+  { id:'dashboard', label:'Dashboard',          icon:'bar-chart',       color:'#0EA5A5' },
   { id:'registrar',  label:'Registrar',          icon:'add-circle',      color:Colors.primary },
   { id:'ciudadanos', label:'Ciudadanos',          icon:'people',          color:'#3B82F6' },
   { id:'reportes',   label:'Reportes',            icon:'alert-circle',    color:Colors.accent },
@@ -1494,18 +1495,190 @@ const lc = StyleSheet.create({
   emptyText:{ fontSize:13, color:'#6B7280', fontWeight:'600' },
 });
 
+function DashboardSection({ citizens, reports, actions }: { citizens: Citizen[]; reports: CitizenReport[]; actions: HelpAction[] }) {
+  const coveredReportIds = new Set(actions.map((a) => a.reportId));
+  const coveredReports = reports.filter((r) => coveredReportIds.has(r.id)).length;
+  const uncoveredReports = reports.length - coveredReports;
+  const coveragePct = reports.length ? Math.round((coveredReports / reports.length) * 100) : 0;
+
+  const totalRecords = reports.length + actions.length;
+  const withEvidence = reports.filter((r) => r.hasEvidence).length + actions.filter((a) => a.hasEvidence).length;
+  const evidencePct = totalRecords ? Math.round((withEvidence / totalRecords) * 100) : 0;
+
+  const manualRegs = reports.filter((r) => r.registeredBy === 'institution').length + actions.filter((a) => a.registeredBy === 'institution').length;
+
+  const activeCitizenIds = new Set([
+    ...reports.map((r) => r.citizenId),
+    ...actions.map((a) => a.citizenId),
+  ]);
+
+  const categoryCounts = reports.reduce<Record<string, number>>((acc, r) => {
+    acc[r.category] = (acc[r.category] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const topCategories = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  const recentActivity = [
+    ...reports.map((r) => ({ id: `r-${r.id}`, date: r.date, label: r.title, type: 'Reporte', color: Colors.accent })),
+    ...actions.map((a) => ({ id: `a-${a.id}`, date: a.date, label: a.reportTitle, type: 'Acción', color: '#8B5CF6' })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 8);
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={ds.wrap}>
+      <View style={ds.kpiGrid}>
+        <View style={ds.kpiCard}>
+          <Text style={ds.kpiLabel}>Reportes totales</Text>
+          <Text style={ds.kpiValue}>{reports.length}</Text>
+        </View>
+        <View style={ds.kpiCard}>
+          <Text style={ds.kpiLabel}>Acciones de ayuda</Text>
+          <Text style={ds.kpiValue}>{actions.length}</Text>
+        </View>
+        <View style={ds.kpiCard}>
+          <Text style={ds.kpiLabel}>Ciudadanos activos</Text>
+          <Text style={ds.kpiValue}>{activeCitizenIds.size} / {citizens.length}</Text>
+        </View>
+        <View style={ds.kpiCard}>
+          <Text style={ds.kpiLabel}>Registros manuales</Text>
+          <Text style={ds.kpiValue}>{manualRegs}</Text>
+        </View>
+      </View>
+
+      <View style={ds.row}>
+        <View style={ds.panel}>
+          <Text style={ds.panelTitle}>Cobertura del programa</Text>
+          <View style={ds.progressTrack}>
+            <View style={[ds.progressFill, { width: `${coveragePct}%` }]} />
+          </View>
+          <Text style={ds.progressText}>{coveragePct}% de reportes cubiertos ({coveredReports}/{reports.length})</Text>
+          <View style={ds.splitRow}>
+            <View style={ds.splitItem}><Text style={ds.splitLabel}>Cubiertos</Text><Text style={ds.splitValue}>{coveredReports}</Text></View>
+            <View style={ds.splitItem}><Text style={ds.splitLabel}>Pendientes</Text><Text style={ds.splitValue}>{uncoveredReports}</Text></View>
+          </View>
+        </View>
+
+        <View style={ds.panel}>
+          <Text style={ds.panelTitle}>Calidad de evidencia</Text>
+          <View style={ds.progressTrackSecondary}>
+            <View style={[ds.progressFillSecondary, { width: `${evidencePct}%` }]} />
+          </View>
+          <Text style={ds.progressText}>{evidencePct}% de registros con evidencia ({withEvidence}/{totalRecords})</Text>
+          <Text style={ds.helper}>Ayuda a medir trazabilidad y soporte para verificación.</Text>
+        </View>
+      </View>
+
+      <View style={ds.row}>
+        <View style={ds.panel}>
+          <Text style={ds.panelTitle}>Top categorías reportadas</Text>
+          {topCategories.length === 0 ? (
+            <Text style={ds.empty}>Sin datos aún.</Text>
+          ) : (
+            topCategories.map(([cat, count]) => {
+              const max = topCategories[0][1] || 1;
+              const pct = Math.max(8, Math.round((count / max) * 100));
+              const color = CAT_COLORS[cat] || Colors.category.other;
+              return (
+                <View key={cat} style={ds.catRow}>
+                  <Text style={ds.catLabel}>{cat}</Text>
+                  <View style={ds.catTrack}><View style={[ds.catFill, { width: `${pct}%`, backgroundColor: color }]} /></View>
+                  <Text style={ds.catCount}>{count}</Text>
+                </View>
+              );
+            })
+          )}
+        </View>
+
+        <View style={ds.panel}>
+          <Text style={ds.panelTitle}>Actividad reciente</Text>
+          {recentActivity.length === 0 ? (
+            <Text style={ds.empty}>Sin actividad reciente.</Text>
+          ) : (
+            recentActivity.map((item) => (
+              <View key={item.id} style={ds.activityRow}>
+                <View style={[ds.activityDot, { backgroundColor: item.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={ds.activityLabel} numberOfLines={1}>{item.label}</Text>
+                  <Text style={ds.activityMeta}>{item.type} · {item.date}</Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+const ds = StyleSheet.create({
+  wrap: { paddingBottom: 40, gap: 14 },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  kpiCard: {
+    width: '24%',
+    minWidth: 180,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8ECF0',
+    padding: 16,
+  },
+  kpiLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280' },
+  kpiValue: { fontSize: 28, fontWeight: '800', color: '#111827', marginTop: 8 },
+  row: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  panel: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8ECF0',
+    padding: 16,
+    minHeight: 210,
+  },
+  panelTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 14 },
+  progressTrack: { height: 12, borderRadius: 999, backgroundColor: '#E5F3EF', overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#1D9E75' },
+  progressTrackSecondary: { height: 12, borderRadius: 999, backgroundColor: '#E7EDFA', overflow: 'hidden' },
+  progressFillSecondary: { height: '100%', backgroundColor: '#3B82F6' },
+  progressText: { marginTop: 10, fontSize: 13, color: '#4B5563', fontWeight: '600' },
+  helper: { marginTop: 6, fontSize: 12, color: '#6B7280' },
+  splitRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  splitItem: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10 },
+  splitLabel: { fontSize: 12, color: '#6B7280' },
+  splitValue: { fontSize: 18, fontWeight: '800', color: '#111827', marginTop: 2 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  catLabel: { width: 92, fontSize: 13, fontWeight: '600', color: '#374151' },
+  catTrack: { flex: 1, height: 9, borderRadius: 999, backgroundColor: '#F1F5F9', overflow: 'hidden' },
+  catFill: { height: '100%', borderRadius: 999 },
+  catCount: { width: 24, textAlign: 'right', fontSize: 13, fontWeight: '700', color: '#111827' },
+  activityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  activityDot: { width: 9, height: 9, borderRadius: 5 },
+  activityLabel: { fontSize: 13, fontWeight: '700', color: '#1F2937' },
+  activityMeta: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  empty: { fontSize: 13, color: '#6B7280' },
+});
+
 // ─── Root Screen ─────────────────────────────────────────────
 export default function AdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [section, setSection] = useState<Section>('registrar');
+  const [section, setSection] = useState<Section>('dashboard');
   const [reports, setReports] = useState<CitizenReport[]>(SEED_REPORTS);
   const [actions, setActions] = useState<HelpAction[]>(SEED_ACTIONS);
 
   const addReport = (d: Omit<CitizenReport,'id'>) => setReports(p=>[{id:`rp${Date.now()}`,...d},...p]);
   const addAction = (d: Omit<HelpAction,'id'>)   => setActions(p=>[{id:`ha${Date.now()}`,...d},...p]);
 
-  const TITLES: Record<Section,string> = { registrar:'Registro Manual', ciudadanos:'Ciudadanos', reportes:'Reportes', acciones:'Acciones de Ayuda' };
+  const TITLES: Record<Section,string> = {
+    dashboard:'Dashboard del Programa',
+    registrar:'Registro Manual',
+    ciudadanos:'Ciudadanos',
+    reportes:'Reportes',
+    acciones:'Acciones de Ayuda',
+  };
 
   return (
     <View style={[s.root, { paddingTop:insets.top }]}>
@@ -1558,6 +1731,7 @@ export default function AdminScreen() {
           </View>
         </View>
         <View style={{ flex:1 }}>
+          {section==='dashboard'  && <DashboardSection citizens={CITIZENS} reports={reports} actions={actions} />}
           {section==='registrar'  && <RegistrarSection citizens={CITIZENS} reports={reports} onSaveReport={addReport} onSaveAction={addAction} />}
           {section==='ciudadanos' && <CiudadanosSection citizens={CITIZENS} reports={reports} actions={actions} />}
           {section==='reportes'   && <ReportesSection  reports={reports} actions={actions} />}

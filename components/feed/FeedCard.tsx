@@ -149,7 +149,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
 
   const handleJoin = () => {
     setHighlightedReportId(report.id);
-    router.push('/map');
+    router.push('/(tabs)/map' as any);
   };
 
   const categoryColor = COLORS.category[report.category] || COLORS.category.other;
@@ -235,23 +235,6 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
         </View>
       )}
 
-      {/* Comments preview */}
-      {report.initialComments && report.initialComments.length > 0 && (
-        <View style={styles.commentsPreview}>
-          {report.initialComments.slice(0, 2).map((c) => (
-            <View key={c.id} style={styles.commentRow}>
-              <Text style={styles.commentUser}>{c.userName}</Text>
-              <Text style={styles.commentText} numberOfLines={1}>{c.text}</Text>
-            </View>
-          ))}
-          {commentsCount > 2 && (
-            <Pressable onPress={() => onOpenComments(report)}>
-              <Text style={styles.viewMoreComments}>Ver los {commentsCount} comentarios</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
-
       {/* Severity indicator */}
       <View style={styles.severityRow}>
         <Text style={styles.severityLabel}>Gravedad:</Text>
@@ -314,7 +297,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
           </Text>
         </Pressable>
 
-        {!isOwnReport && report.status === 'pending' && (
+        {!isOwnReport && !!onSolicitar && report.status === 'pending' && (
           <Pressable
             style={[styles.actionButton, styles.solicitarButton, solicitado && styles.solicitadoButton]}
             onPress={() => {
@@ -333,7 +316,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
           </Pressable>
         )}
 
-        {!isOwnReport && (report.status === 'verified' || report.status === 'in_progress') && (
+        {!isOwnReport && !!onCompletar && (report.status === 'verified' || report.status === 'in_progress') && (
           <Pressable
             style={[styles.actionButton, styles.completarButton]}
             onPress={() => onCompletar?.(report)}
@@ -352,17 +335,17 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 18,
     marginHorizontal: 16,
-    marginVertical: 6,
+    marginVertical: 8,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E7ECF2',
   },
   header: {
     flexDirection: 'row',
@@ -413,13 +396,13 @@ const styles = StyleSheet.create({
     maxWidth: 120,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   titleRow: {
     flexDirection: 'row',
@@ -429,17 +412,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: COLORS.textPrimary,
     flex: 1,
   },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 999,
     gap: 5,
   },
   categoryDot: {
@@ -454,21 +437,21 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 21,
+    marginBottom: 14,
   },
   image: {
     width: '100%',
-    height: 220,
-    borderRadius: 12,
-    marginBottom: 10,
+    height: 232,
+    borderRadius: 14,
+    marginBottom: 12,
     backgroundColor: '#E8ECF0',
   },
   imagePlaceholder: {
     width: '100%',
-    height: 180,
-    borderRadius: 12,
-    marginBottom: 10,
+    height: 200,
+    borderRadius: 14,
+    marginBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -480,35 +463,36 @@ const styles = StyleSheet.create({
   severityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 12,
+    gap: 5,
+    marginBottom: 14,
   },
   severityLabel: {
     fontSize: 12,
+    fontWeight: '600',
     color: COLORS.textTertiary,
-    marginRight: 4,
+    marginRight: 2,
   },
   severityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
   },
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 20,
+    borderRadius: 999,
     gap: 5,
   },
   actionButtonActive: {
@@ -517,13 +501,13 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   joinButton: {
     marginLeft: 'auto',
-    backgroundColor: COLORS.primary + '12',
+    backgroundColor: COLORS.primary + '14',
     borderWidth: 1,
-    borderColor: COLORS.primary + '30',
+    borderColor: COLORS.primary + '3A',
   },
   solicitarButton: {
     backgroundColor: COLORS.accent + '12',
@@ -538,33 +522,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '12',
     borderWidth: 1,
     borderColor: COLORS.primary + '30',
-  },
-  commentsPreview: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
-    gap: 6,
-  },
-  commentRow: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-  },
-  commentUser: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  commentText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    flex: 1,
-  },
-  viewMoreComments: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginTop: 2,
   },
 });

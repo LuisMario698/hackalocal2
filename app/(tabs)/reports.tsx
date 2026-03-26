@@ -15,6 +15,7 @@ import {
 import Text from '../../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import ReportMapPicker from '../../components/ReportMapPicker';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -81,6 +82,7 @@ function ReportCard({ report }: { report: ReportItem }) {
 // ═════════════════════════════════════════════════════════════
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { location } = useUserLocation();
   const { user } = useAuth();
 
@@ -459,9 +461,14 @@ export default function ReportsScreen() {
 
       {/* FAB */}
       {!showForm && (
-        <Pressable style={s.fab} onPress={() => setShowForm(true)}>
-          <Ionicons name="add" size={28} color="#fff" />
-        </Pressable>
+        <>
+          <Pressable style={[s.aiFab, { bottom: 188 + insets.bottom }]} onPress={() => router.push('/(tabs)/chat' as any)}>
+            <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+          </Pressable>
+          <Pressable style={[s.fab, { bottom: 120 + insets.bottom }]} onPress={() => setShowForm(true)}>
+            <Ionicons name="add" size={30} color="#fff" />
+          </Pressable>
+        </>
       )}
     </View>
   );
@@ -496,11 +503,10 @@ const s = StyleSheet.create({
   // FAB
   fab: {
     position: 'absolute' as const,
-    bottom: 120,
-    left: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 20,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     backgroundColor: Colors.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -508,6 +514,21 @@ const s = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  aiFab: {
+    position: 'absolute' as const,
+    right: 24,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#0F766E',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
   },
 

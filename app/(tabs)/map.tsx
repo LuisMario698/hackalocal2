@@ -180,7 +180,7 @@ export default function MapScreen() {
     const { data, error } = await supabase
       .from('reports')
       .select('id, title, category, latitude, longitude, photo_url, status, description')
-      .in('status', ['pending', 'verified'])
+      .in('status', ['pending', 'verified', 'in_progress'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -262,9 +262,8 @@ export default function MapScreen() {
             setActiveFilter('all');
           }
           handleSelectReport(reportToSelect);
+          clearHighlight();
         }
-        
-        clearHighlight();
       }
     }, [highlightedReportId, activeFilter, clearHighlight, mapReports])
   );

@@ -20,6 +20,8 @@ import { CommentData, ReportData } from '../../components/feed/FeedCard';
 import { PostData } from '../../components/feed/PostCard';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import { useMapHighlight } from '../../contexts/MapHighlightContext';
 
 const PRIMARY = '#1D9E75';
 const FILTERS = ['Todos', 'Recientes', 'Cercanos', 'Mas apoyados'];
@@ -51,7 +53,9 @@ function getInitials(name: string): string {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, profile } = useAuth();
+  const { setHighlightedReportId } = useMapHighlight();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -132,6 +136,7 @@ export default function HomeScreen() {
 
     const mapped: PostData[] = (data ?? []).map((p: any) => ({
       id: p.id,
+      reportId: p.report_id ?? null,
       userName: p.profiles?.name ?? 'Usuario',
       userInitials: getInitials(p.profiles?.name ?? 'U'),
       timeAgo: formatTimeAgo(p.created_at),
@@ -328,6 +333,51 @@ export default function HomeScreen() {
     setDetailVisible(false);
   }, []);
 
+  const handlePressPost = useCallback((post: PostData) => {
+    const pseudoReport: ReportData = {
+      id: `post-${post.id}`,
+      userName: post.userName,
+      userInitials: post.userInitials,
+      timeAgo: post.timeAgo,
+      category: 'other',
+      status: 'pending',
+      title: post.title,
+      description: post.content,
+      location: 'Comunidad Social Clean',
+      photoUrl: post.photoUrl,
+      likesCount: post.likesCount,
+      commentsCount: post.commentsCount,
+      severity: 1,
+      initialComments: post.initialComments,
+    };
+
+    setDetailReport(pseudoReport);
+    setCommentsMap((prev) => {
+      if (!prev[pseudoReport.id]) {
+        return { ...prev, [pseudoReport.id]: post.initialComments || [] };
+      }
+      return prev;
+    });
+
+    if (likesMap[pseudoReport.id] === undefined) {
+      setLikesMap((prev) => ({ ...prev, [pseudoReport.id]: post.likesCount }));
+    }
+
+    setDetailVisible(true);
+  }, [likesMap]);
+
+  const handleJoinPost = useCallback((post: PostData) => {
+    const linkedReportId = post.reportId ?? reports.find((r) => r.title === post.title)?.id;
+
+    if (!linkedReportId) {
+      Alert.alert('Sin ubicacion', 'Esta publicacion no esta vinculada a un reporte con ubicacion en el mapa.');
+      return;
+    }
+
+    setHighlightedReportId(linkedReportId);
+    router.push('/(tabs)/map' as any);
+  }, [reports, router, setHighlightedReportId]);
+
   const handleDetailLike = useCallback(() => {
     if (!detailReport) return;
     const id = detailReport.id;
@@ -445,19 +495,26 @@ export default function HomeScreen() {
         onOpenComments={handleOpenComments}
         onPressReport={handlePressReport}
         onOpenPostComments={handleOpenPostComments}
-        onSolicitarReport={handleSolicitarReport}
-        onCompletarReport={handleCompletarReport}
+        onPressPost={handlePressPost}
+        onJoinPost={handleJoinPost}
         currentUserId={user?.id}
         refreshing={refreshing}
         onRefresh={handleRefresh}
       />
+
+      <Pressable
+        style={[styles.aiFab, { bottom: 168 + insets.bottom }]}
+        onPress={() => router.push('/(tabs)/chat' as any)}
+      >
+        <Ionicons name="chatbubble-ellipses" size={22} color="#FFFFFF" />
+      </Pressable>
 
       {/* FAB: Create Post */}
       <Pressable
         style={[styles.fab, { bottom: 100 + insets.bottom }]}
         onPress={() => setCreatePostVisible(true)}
       >
-        <Ionicons name="add" size={28} color="#FFF" />
+        <Ionicons name="add" size={30} color="#FFF" />
       </Pressable>
 
       {/* Create Post Sheet */}
@@ -512,17 +569,17 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#EEF3F8',
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F7FAFD',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8ECF0',
+    borderBottomColor: '#E3EAF2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
     zIndex: 10,
   },
@@ -534,10 +591,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 29,
     fontWeight: '800',
     color: PRIMARY,
-    letterSpacing: -0.5,
+    letterSpacing: -0.7,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -549,10 +606,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3EAF2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -583,10 +642,10 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingHorizontal: 18,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8ECF0',
+    borderColor: '#DCE5EF',
   },
   filterPillActive: {
     backgroundColor: PRIMARY,
@@ -603,9 +662,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
@@ -615,5 +674,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     zIndex: 20,
+  },
+  aiFab: {
+    position: 'absolute',
+    right: 24,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#0F766E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    elevation: 5,
+    zIndex: 19,
   },
 });

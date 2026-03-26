@@ -22,6 +22,7 @@ const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }
 
 export interface PostData {
   id: string;
+  reportId?: string | null;
   userName: string;
   userInitials: string;
   timeAgo: string;
@@ -49,9 +50,10 @@ interface PostCardProps {
   post: PostData;
   onOpenComments?: (post: PostData) => void;
   onPress?: (post: PostData) => void;
+  onJoin?: (post: PostData) => void;
 }
 
-export default function PostCard({ post, onOpenComments, onPress }: PostCardProps) {
+export default function PostCard({ post, onOpenComments, onPress, onJoin }: PostCardProps) {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -153,6 +155,12 @@ export default function PostCard({ post, onOpenComments, onPress }: PostCardProp
           <Ionicons name="share-social-outline" size={18} color={COLORS.textSecondary} />
           <Text style={styles.actionText}>Compartir</Text>
         </Pressable>
+        {post.type === 'report' && (
+          <Pressable style={[styles.actionButton, styles.joinButton]} onPress={() => onJoin?.(post)}>
+            <Ionicons name="hand-left-outline" size={17} color={COLORS.primary} />
+            <Text style={[styles.actionText, styles.joinText]}>Me uno</Text>
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );
@@ -302,5 +310,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     fontWeight: '500',
+  },
+  joinButton: {
+    marginLeft: 'auto',
+    backgroundColor: COLORS.primary + '12',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+    borderRadius: 999,
+  },
+  joinText: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
 });

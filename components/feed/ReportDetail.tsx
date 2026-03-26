@@ -99,7 +99,7 @@ export default function ReportDetail({
     if (report) {
       setHighlightedReportId(report.id);
       onClose();
-      router.push('/map');
+      router.push('/(tabs)/map' as any);
     }
   };
 
@@ -165,25 +165,13 @@ export default function ReportDetail({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20 }}
         >
-          {/* User info */}
-          <View style={styles.userRow}>
-            <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
-              <Text style={styles.avatarText}>{report.userInitials}</Text>
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{report.userName}</Text>
-              <View style={styles.userMeta}>
-                <Text style={styles.timeAgo}>{report.timeAgo}</Text>
-                <View style={styles.dot} />
-                <Ionicons name="location-sharp" size={12} color={COLORS.textTertiary} />
-                <Text style={styles.location}>{report.location}</Text>
-              </View>
-            </View>
-          </View>
-
           {/* Image */}
-          {report.photoUrl && (
+          {report.photoUrl ? (
             <Image source={{ uri: report.photoUrl }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="image-outline" size={46} color="#9CA3AF" />
+            </View>
           )}
 
           {/* Actions bar */}
@@ -391,58 +379,17 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    paddingBottom: 12,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  userInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  userName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  userMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  timeAgo: {
-    fontSize: 12,
-    color: COLORS.textTertiary,
-  },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.textTertiary,
-    marginHorizontal: 6,
-  },
-  location: {
-    fontSize: 12,
-    color: COLORS.textTertiary,
-    marginLeft: 2,
-  },
   image: {
     width: '100%',
     height: 300,
     backgroundColor: '#E8ECF0',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
   },
   actionsBar: {
     flexDirection: 'row',

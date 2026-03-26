@@ -94,6 +94,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Filter out hidden tabs based on auth role
   const visibleRoutes = state.routes.filter((route) => {
     if (route.name === 'verify' && !isVerifier) return false;
+    if (route.name === 'chat') return false;
     return true;
   });
   const visibleIndex = visibleRoutes.findIndex((r) => r.key === state.routes[state.index]?.key);
@@ -232,6 +233,7 @@ export default function TabLayout() {
         name="chat"
         options={{
           title: 'IA',
+          href: null,
         }}
       />
       <Tabs.Screen
