@@ -16,10 +16,12 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { useFontSize, FONT_STEP_COUNT } from '../contexts/FontSizeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState(true);
   const [radiusKm, setRadiusKm] = useState('2');
   const { step: fontStep, setStep: setFontStep, fs } = useFontSize();
@@ -196,7 +198,10 @@ export default function SettingsScreen() {
       </View>
 
       {/* Cerrar sesion */}
-      <Pressable style={s.logoutBtn}>
+      <Pressable style={s.logoutBtn} onPress={async () => {
+        try { await signOut(); } catch {}
+        router.replace('/login' as any);
+      }}>
         <Ionicons name="log-out-outline" size={18} color={Colors.error} />
         <Text style={s.logoutText}>Cerrar sesion</Text>
       </Pressable>

@@ -24,6 +24,7 @@ import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
+import { File as ExpoFile } from 'expo-file-system';
 
 const SUGGESTIONS = [
   {
@@ -110,11 +111,11 @@ export default function ChatTabScreen() {
     if (selectedImage) {
       try {
         const filename = `chat-${Date.now()}.jpg`;
-        const response = await fetch(selectedImage);
-        const blob = await response.blob();
+        const file = new ExpoFile(selectedImage);
+        const arrayBuffer = await file.arrayBuffer();
         const { error } = await supabase.storage
           .from('report-photos')
-          .upload(filename, blob, { contentType: 'image/jpeg' });
+          .upload(filename, arrayBuffer, { contentType: 'image/jpeg' });
 
         if (!error) {
           const { data: urlData } = supabase.storage
