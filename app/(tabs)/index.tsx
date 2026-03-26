@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Pressable,
   ScrollView,
@@ -14,8 +15,11 @@ import CommentsSheet from '../../components/feed/CommentsSheet';
 import ReportDetail from '../../components/feed/ReportDetail';
 import SearchSheet from '../../components/feed/SearchSheet';
 import NotificationsSheet from '../../components/feed/NotificationsSheet';
+import CreatePostSheet from '../../components/feed/CreatePostSheet';
 import { CommentData, ReportData } from '../../components/feed/FeedCard';
+import { PostData } from '../../components/feed/PostCard';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 const PRIMARY = '#1D9E75';
 const FILTERS = ['Todos', 'Recientes', 'Cercanos', 'Mas apoyados'];
@@ -47,13 +51,18 @@ function getInitials(name: string): string {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { user, profile } = useAuth();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Supabase feed state
+  // Feed state
   const [reports, setReports] = useState<ReportData[]>([]);
+  const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Create post
+  const [createPostVisible, setCreatePostVisible] = useState(false);
 
   const fetchReports = useCallback(async () => {
     const { data, error } = await supabase
@@ -73,6 +82,7 @@ export default function HomeScreen() {
 
     const mapped: ReportData[] = (data ?? []).map((r: any) => ({
       id: r.id,
+      userId: r.user_id,
       userName: r.profiles?.name ?? 'Usuario',
       userInitials: getInitials(r.profiles?.name ?? 'U'),
       timeAgo: formatTimeAgo(r.created_at),
@@ -85,27 +95,109 @@ export default function HomeScreen() {
       likesCount: r.likes_count ?? 0,
       commentsCount: r.comments_count ?? 0,
       severity: r.severity ?? 1,
-      initialComments: (r.report_comments ?? []).map((c: any) => ({
-        id: c.id,
-        userName: c.profiles?.name ?? 'Usuario',
-        userInitials: getInitials(c.profiles?.name ?? 'U'),
-        text: c.content,
-        timeAgo: formatTimeAgo(c.created_at),
-      })),
+      initialComments: (r.report_comments ?? [])
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .map((c: any) => ({
+          id: c.id,
+          userName: c.profiles?.name ?? 'Usuario',
+          userInitials: getInitials(c.profiles?.name ?? 'U'),
+          text: c.content,
+          timeAgo: formatTimeAgo(c.created_at),
+        })),
     }));
 
     setReports(mapped);
   }, []);
 
+  const fetchPosts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('feed_posts')
+      .select(`
+        *,
+        profiles!feed_posts_user_id_fkey ( name, avatar_url ),
+        feed_post_comments ( id, content, created_at, user_id, profiles!feed_post_comments_user_id_fkey ( name ) )
+      `)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.warn('Error fetching posts:', error.message);
+      console.error('Details:', error);
+      return;
+    }
+
+    console.log('Posts fetched:', data?.length ?? 0, 'items');
+    console.log('Posts data:', data);
+
+    const mapped: PostData[] = (data ?? []).map((p: any) => ({
+      id: p.id,
+      userName: p.profiles?.name ?? 'Usuario',
+      userInitials: getInitials(p.profiles?.name ?? 'U'),
+      timeAgo: formatTimeAgo(p.created_at),
+      type: p.type,
+      priority: p.priority,
+      title: p.title,
+      content: p.content ?? '',
+      isPinned: p.is_pinned,
+      likesCount: p.likes_count ?? 0,
+      commentsCount: p.comments_count ?? 0,
+      initialComments: (p.feed_post_comments ?? [])
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .map((c: any) => ({
+          id: c.id,
+          userName: c.profiles?.name ?? 'Usuario',
+          userInitials: getInitials(c.profiles?.name ?? 'U'),
+          text: c.content,
+          timeAgo: formatTimeAgo(c.created_at),
+        })),
+    }));
+
+    setPosts(mapped);
+  }, []);
+
   useEffect(() => {
     setLoading(true);
-    fetchReports().finally(() => setLoading(false));
-  }, [fetchReports]);
+    Promise.all([fetchReports(), fetchPosts()]).finally(() => setLoading(false));
+  }, [fetchReports, fetchPosts]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchReports().finally(() => setRefreshing(false));
-  }, [fetchReports]);
+    Promise.all([fetchReports(), fetchPosts()]).finally(() => setRefreshing(false));
+  }, [fetchReports, fetchPosts]);
+
+  // Create post handler
+  const handleCreatePost = useCallback(async (data: { title: string; content: string; type: string }) => {
+    const userId = user?.id;
+    if (!userId) {
+      Alert.alert('Error', 'Debes iniciar sesion para publicar');
+      return;
+    }
+
+    const { error } = await supabase.from('feed_posts').insert({
+      user_id: userId,
+      title: data.title,
+      content: data.content,
+      type: data.type,
+      priority: 'normal',
+    } as any);
+
+    if (error) {
+      Alert.alert('Error', 'No se pudo crear la publicacion');
+      throw error;
+    }
+
+    await fetchPosts();
+  }, [user, fetchPosts]);
+
+  // Solicitar report handler
+  const handleSolicitarReport = useCallback((report: ReportData) => {
+    Alert.alert(
+      'Solicitud enviada',
+      `Has solicitado atender el reporte "${report.title}". El autor sera notificado.`,
+      [{ text: 'OK' }]
+    );
+  }, []);
 
   // Comments sheet state
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -154,6 +246,32 @@ export default function HomeScreen() {
     setCommentsVisible(true);
   }, []);
 
+  const handleOpenPostComments = useCallback((post: PostData) => {
+    const pseudoReport: ReportData = {
+      id: `post-${post.id}`,
+      userName: post.userName,
+      userInitials: post.userInitials,
+      timeAgo: post.timeAgo,
+      category: 'other',
+      status: 'pending',
+      title: post.title,
+      description: post.content,
+      location: '',
+      likesCount: post.likesCount,
+      commentsCount: post.commentsCount,
+      severity: 1,
+      initialComments: post.initialComments,
+    };
+    setCommentsReport(pseudoReport);
+    setCommentsMap((prev) => {
+      if (!prev[pseudoReport.id]) {
+        return { ...prev, [pseudoReport.id]: post.initialComments || [] };
+      }
+      return prev;
+    });
+    setCommentsVisible(true);
+  }, []);
+
   const handleCloseComments = useCallback(() => {
     setCommentsVisible(false);
   }, []);
@@ -163,8 +281,8 @@ export default function HomeScreen() {
       if (!commentsReport) return;
       const newComment: CommentData = {
         id: Date.now().toString(),
-        userName: 'Tu',
-        userInitials: 'TU',
+        userName: profile?.name ?? 'Tu',
+        userInitials: getInitials(profile?.name ?? 'Tu'),
         text,
         timeAgo: 'Ahora',
       };
@@ -173,7 +291,7 @@ export default function HomeScreen() {
         [commentsReport.id]: [...(prev[commentsReport.id] || []), newComment],
       }));
     },
-    [commentsReport]
+    [commentsReport, profile]
   );
 
   // -- Detail handlers --
@@ -213,8 +331,8 @@ export default function HomeScreen() {
       if (!detailReport) return;
       const newComment: CommentData = {
         id: Date.now().toString(),
-        userName: 'Tu',
-        userInitials: 'TU',
+        userName: profile?.name ?? 'Tu',
+        userInitials: getInitials(profile?.name ?? 'Tu'),
         text,
         timeAgo: 'Ahora',
       };
@@ -223,7 +341,7 @@ export default function HomeScreen() {
         [detailReport.id]: [...(prev[detailReport.id] || []), newComment],
       }));
     },
-    [detailReport]
+    [detailReport, profile]
   );
 
   // -- Search handler --
@@ -306,12 +424,31 @@ export default function HomeScreen() {
       {/* Feed */}
       <FeedList
         reports={reports}
+        posts={posts}
         loading={loading}
         filter={FILTER_KEYS[activeFilter]}
         onOpenComments={handleOpenComments}
         onPressReport={handlePressReport}
+        onOpenPostComments={handleOpenPostComments}
+        onSolicitarReport={handleSolicitarReport}
+        currentUserId={user?.id}
         refreshing={refreshing}
         onRefresh={handleRefresh}
+      />
+
+      {/* FAB: Create Post */}
+      <Pressable
+        style={[styles.fab, { bottom: 100 + insets.bottom }]}
+        onPress={() => setCreatePostVisible(true)}
+      >
+        <Ionicons name="add" size={28} color="#FFF" />
+      </Pressable>
+
+      {/* Create Post Sheet */}
+      <CreatePostSheet
+        visible={createPostVisible}
+        onClose={() => setCreatePostVisible(false)}
+        onSubmit={handleCreatePost}
       />
 
       {/* Comments Bottom Sheet */}
@@ -446,5 +583,21 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: '#FFFFFF',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 20,
   },
 });

@@ -70,6 +70,7 @@ export interface CommentData {
 
 export interface ReportData {
   id: string;
+  userId?: string;
   userName: string;
   userInitials: string;
   timeAgo: string;
@@ -98,15 +99,18 @@ interface FeedCardProps {
   report: ReportData;
   onOpenComments: (report: ReportData) => void;
   onPress: (report: ReportData) => void;
+  onSolicitar?: (report: ReportData) => void;
+  isOwnReport?: boolean;
 }
 
-export default function FeedCard({ report, onOpenComments, onPress }: FeedCardProps) {
+export default function FeedCard({ report, onOpenComments, onPress, onSolicitar, isOwnReport }: FeedCardProps) {
   const router = useRouter();
   const { setHighlightedReportId } = useMapHighlight();
 
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(report.likesCount);
   const [shared, setShared] = useState(false);
+  const [solicitado, setSolicitado] = useState(false);
 
   const handleLike = () => {
     setLiked(!liked);
@@ -219,6 +223,23 @@ export default function FeedCard({ report, onOpenComments, onPress }: FeedCardPr
         </View>
       )}
 
+      {/* Comments preview */}
+      {report.initialComments && report.initialComments.length > 0 && (
+        <View style={styles.commentsPreview}>
+          {report.initialComments.slice(0, 2).map((c) => (
+            <View key={c.id} style={styles.commentRow}>
+              <Text style={styles.commentUser}>{c.userName}</Text>
+              <Text style={styles.commentText} numberOfLines={1}>{c.text}</Text>
+            </View>
+          ))}
+          {commentsCount > 2 && (
+            <Pressable onPress={() => onOpenComments(report)}>
+              <Text style={styles.viewMoreComments}>Ver los {commentsCount} comentarios</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+
       {/* Severity indicator */}
       <View style={styles.severityRow}>
         <Text style={styles.severityLabel}>Gravedad:</Text>
@@ -280,6 +301,25 @@ export default function FeedCard({ report, onOpenComments, onPress }: FeedCardPr
             Me uno
           </Text>
         </Pressable>
+
+        {!isOwnReport && report.status === 'pending' && (
+          <Pressable
+            style={[styles.actionButton, styles.solicitarButton, solicitado && styles.solicitadoButton]}
+            onPress={() => {
+              setSolicitado(!solicitado);
+              if (!solicitado) onSolicitar?.(report);
+            }}
+          >
+            <Ionicons
+              name={solicitado ? 'checkmark-circle' : 'arrow-redo-outline'}
+              size={16}
+              color={solicitado ? '#FFFFFF' : COLORS.accent}
+            />
+            <Text style={[styles.actionText, { color: solicitado ? '#FFFFFF' : COLORS.accent, fontWeight: '600' }]}>
+              {solicitado ? 'Solicitado' : 'Solicitar'}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );
@@ -460,5 +500,42 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '12',
     borderWidth: 1,
     borderColor: COLORS.primary + '30',
+  },
+  solicitarButton: {
+    backgroundColor: COLORS.accent + '12',
+    borderWidth: 1,
+    borderColor: COLORS.accent + '30',
+  },
+  solicitadoButton: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  commentsPreview: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    gap: 6,
+  },
+  commentRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  commentUser: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  commentText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  viewMoreComments: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginTop: 2,
   },
 });
