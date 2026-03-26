@@ -11,6 +11,7 @@ import Text from '../ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
+import ImageViewer from '../ImageViewer';
 
 // -- Colores del proyecto --
 const COLORS = {
@@ -100,10 +101,11 @@ interface FeedCardProps {
   onOpenComments: (report: ReportData) => void;
   onPress: (report: ReportData) => void;
   onSolicitar?: (report: ReportData) => void;
+  onCompletar?: (report: ReportData) => void;
   isOwnReport?: boolean;
 }
 
-export default function FeedCard({ report, onOpenComments, onPress, onSolicitar, isOwnReport }: FeedCardProps) {
+export default function FeedCard({ report, onOpenComments, onPress, onSolicitar, onCompletar, isOwnReport }: FeedCardProps) {
   const router = useRouter();
   const { setHighlightedReportId } = useMapHighlight();
 
@@ -111,6 +113,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
   const [likesCount, setLikesCount] = useState(report.likesCount);
   const [shared, setShared] = useState(false);
   const [solicitado, setSolicitado] = useState(false);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
 
   const handleLike = () => {
     setLiked(!liked);
@@ -197,7 +200,16 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
 
       {/* Image */}
       {report.photoUrl ? (
-        <Image source={{ uri: report.photoUrl }} style={styles.image} resizeMode="cover" />
+        <>
+          <Pressable onPress={() => setImageViewerVisible(true)}>
+            <Image source={{ uri: report.photoUrl }} style={styles.image} resizeMode="cover" />
+          </Pressable>
+          <ImageViewer
+            visible={imageViewerVisible}
+            imageUrl={report.photoUrl}
+            onClose={() => setImageViewerVisible(false)}
+          />
+        </>
       ) : (
         <View style={[styles.imagePlaceholder, { backgroundColor: categoryColor + '15' }]}>
           <Ionicons
@@ -317,6 +329,18 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
             />
             <Text style={[styles.actionText, { color: solicitado ? '#FFFFFF' : COLORS.accent, fontWeight: '600' }]}>
               {solicitado ? 'Solicitado' : 'Solicitar'}
+            </Text>
+          </Pressable>
+        )}
+
+        {!isOwnReport && (report.status === 'verified' || report.status === 'in_progress') && (
+          <Pressable
+            style={[styles.actionButton, styles.completarButton]}
+            onPress={() => onCompletar?.(report)}
+          >
+            <Ionicons name="checkmark-done-outline" size={16} color={COLORS.primary} />
+            <Text style={[styles.actionText, { color: COLORS.primary, fontWeight: '600' }]}>
+              Completar
             </Text>
           </Pressable>
         )}
@@ -509,6 +533,11 @@ const styles = StyleSheet.create({
   solicitadoButton: {
     backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
+  },
+  completarButton: {
+    backgroundColor: COLORS.primary + '12',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
   },
   commentsPreview: {
     backgroundColor: '#F9FAFB',

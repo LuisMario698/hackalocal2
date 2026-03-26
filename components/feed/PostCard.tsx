@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Pressable, Share, Platform, StyleSheet, View } from 'react-native';
+import { Image, Pressable, Share, Platform, StyleSheet, View } from 'react-native';
 import Text from '../ScaledText';
 import { Ionicons } from '@expo/vector-icons';
+import ImageViewer from '../ImageViewer';
 
 const COLORS = {
   primary: '#1D9E75',
@@ -31,6 +32,7 @@ export interface PostData {
   isPinned: boolean;
   likesCount: number;
   commentsCount: number;
+  photoUrl?: string;
   initialComments?: { id: string; userName: string; userInitials: string; text: string; timeAgo: string }[];
 }
 
@@ -52,6 +54,7 @@ interface PostCardProps {
 export default function PostCard({ post, onOpenComments, onPress }: PostCardProps) {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const typeConf = TYPE_CONFIG[post.type] || TYPE_CONFIG.info;
   const avatarBg = getAvatarColor(post.userName);
 
@@ -99,6 +102,22 @@ export default function PostCard({ post, onOpenComments, onPress }: PostCardProp
       {/* Content */}
       <Text style={styles.title}>{post.title}</Text>
       <Text style={styles.content} numberOfLines={4}>{post.content}</Text>
+
+      {/* Image */}
+      {post.photoUrl && (
+        <Pressable onPress={() => setImageViewerVisible(true)}>
+          <Image source={{ uri: post.photoUrl }} style={styles.postImage} resizeMode="cover" />
+        </Pressable>
+      )}
+
+      {/* Fullscreen image viewer */}
+      {post.photoUrl && (
+        <ImageViewer
+          visible={imageViewerVisible}
+          imageUrl={post.photoUrl}
+          onClose={() => setImageViewerVisible(false)}
+        />
+      )}
 
       {/* Inline comments preview */}
       {post.initialComments && post.initialComments.length > 0 && (
@@ -222,6 +241,13 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
+  },
+  postImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#E8ECF0',
   },
   commentsPreview: {
     backgroundColor: '#F9FAFB',

@@ -102,9 +102,11 @@ export default function ReportsScreen() {
   const [loadingReports, setLoadingReports] = useState(true);
 
   const fetchMyReports = useCallback(async () => {
+    if (!user?.id) return;
     const { data, error } = await supabase
       .from('reports')
       .select('id, title, description, category, status, address, created_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -123,7 +125,7 @@ export default function ReportsScreen() {
         createdAt: new Date(r.created_at).toLocaleDateString('es-MX'),
       })),
     );
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     setLoadingReports(true);

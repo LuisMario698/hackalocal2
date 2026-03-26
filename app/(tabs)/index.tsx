@@ -142,6 +142,7 @@ export default function HomeScreen() {
       isPinned: p.is_pinned,
       likesCount: p.likes_count ?? 0,
       commentsCount: p.comments_count ?? 0,
+      photoUrl: p.photo_url ?? undefined,
       initialComments: (p.feed_post_comments ?? [])
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .map((c: any) => ({
@@ -196,6 +197,20 @@ export default function HomeScreen() {
       'Solicitud enviada',
       `Has solicitado atender el reporte "${report.title}". El autor sera notificado.`,
       [{ text: 'OK' }]
+    );
+  }, []);
+
+  // Completar report handler (placeholder para funcionalidad futura)
+  const handleCompletarReport = useCallback((report: ReportData) => {
+    Alert.alert(
+      'Completar reporte',
+      `¿Confirmas que el problema "${report.title}" ha sido resuelto?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Confirmar', onPress: () => {
+          Alert.alert('Gracias', 'Tu confirmacion ha sido registrada. Un verificador revisara el reporte.');
+        }},
+      ]
     );
   }, []);
 
@@ -431,6 +446,7 @@ export default function HomeScreen() {
         onPressReport={handlePressReport}
         onOpenPostComments={handleOpenPostComments}
         onSolicitarReport={handleSolicitarReport}
+        onCompletarReport={handleCompletarReport}
         currentUserId={user?.id}
         refreshing={refreshing}
         onRefresh={handleRefresh}

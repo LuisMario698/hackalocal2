@@ -22,6 +22,7 @@ interface FeedListProps {
   onOpenPostComments?: (post: PostData) => void;
   onPressPost?: (post: PostData) => void;
   onSolicitarReport?: (report: ReportData) => void;
+  onCompletarReport?: (report: ReportData) => void;
   currentUserId?: string;
   refreshing: boolean;
   onRefresh: () => void;
@@ -37,6 +38,7 @@ export default function FeedList({
   onOpenPostComments,
   onPressPost,
   onSolicitarReport,
+  onCompletarReport,
   currentUserId,
   refreshing,
   onRefresh,
@@ -104,6 +106,7 @@ export default function FeedList({
               onOpenComments={onOpenComments}
               onPress={onPressReport}
               onSolicitar={onSolicitarReport}
+              onCompletar={onCompletarReport}
               isOwnReport={currentUserId ? item.data.userId === currentUserId : false}
             />
           );
@@ -119,7 +122,7 @@ export default function FeedList({
           return <AdBanner ad={item.data} />;
       }
     },
-    [onOpenComments, onPressReport, onOpenPostComments, onPressPost, onSolicitarReport, currentUserId]
+    [onOpenComments, onPressReport, onOpenPostComments, onPressPost, onSolicitarReport, onCompletarReport, currentUserId]
   );
 
   const keyExtractor = useCallback((item: FeedItem) => {
