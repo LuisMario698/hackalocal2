@@ -24,6 +24,7 @@ import { type ReportStatus } from '../../constants/MockData';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { haversineMeters } from '../../utils/geo';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -81,6 +82,7 @@ function ReportCard({ report }: { report: ReportItem }) {
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const { location } = useUserLocation();
+  const { user } = useAuth();
 
   // View toggle
   const [showForm, setShowForm] = useState(false);
@@ -209,16 +211,19 @@ export default function ReportsScreen() {
 
     setSubmitting(true);
     try {
-      // Get a valid user_id from profiles (until real auth is implemented)
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1)
-        .single();
-
-      const profileId = (profileData as any)?.id;
+      // Use authenticated user if available, otherwise fall back to first profile
+      let profileId = user?.id;
       if (!profileId) {
-        Alert.alert('Error', 'No se encontro un usuario en la base de datos. Crea un perfil primero.');
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id')
+          .limit(1)
+          .single();
+        profileId = (profileData as any)?.id;
+      }
+
+      if (!profileId) {
+        Alert.alert('Error', 'No se encontro un usuario. Inicia sesion primero.');
         return;
       }
 
