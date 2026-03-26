@@ -22,6 +22,10 @@ interface FeedListProps {
   onOpenPostComments?: (post: PostData) => void;
   onPressPost?: (post: PostData) => void;
   onJoinPost?: (post: PostData) => void;
+  onToggleReportLike?: (report: ReportData) => void;
+  onTogglePostLike?: (post: PostData) => void;
+  likedMap?: Record<string, boolean>;
+  likesMap?: Record<string, number>;
   onSolicitarReport?: (report: ReportData) => void;
   onCompletarReport?: (report: ReportData) => void;
   currentUserId?: string;
@@ -39,6 +43,10 @@ export default function FeedList({
   onOpenPostComments,
   onPressPost,
   onJoinPost,
+  onToggleReportLike,
+  onTogglePostLike,
+  likedMap,
+  likesMap,
   onSolicitarReport,
   onCompletarReport,
   currentUserId,
@@ -107,6 +115,9 @@ export default function FeedList({
               report={item.data}
               onOpenComments={onOpenComments}
               onPress={onPressReport}
+              onToggleLike={onToggleReportLike}
+              liked={!!likedMap?.[item.data.id]}
+              likesCountOverride={likesMap?.[item.data.id]}
               onSolicitar={onSolicitarReport}
               onCompletar={onCompletarReport}
               isOwnReport={currentUserId ? item.data.userId === currentUserId : false}
@@ -119,13 +130,16 @@ export default function FeedList({
               onOpenComments={onOpenPostComments ? () => onOpenPostComments(item.data) : undefined}
               onPress={onPressPost ? () => onPressPost(item.data) : undefined}
               onJoin={onJoinPost ? () => onJoinPost(item.data) : undefined}
+              onToggleLike={onTogglePostLike}
+              liked={!!likedMap?.[`post-${item.data.id}`]}
+              likesCountOverride={likesMap?.[`post-${item.data.id}`]}
             />
           );
         case 'ad':
           return <AdBanner ad={item.data} />;
       }
     },
-    [onOpenComments, onPressReport, onOpenPostComments, onPressPost, onJoinPost, onSolicitarReport, onCompletarReport, currentUserId]
+    [onOpenComments, onPressReport, onOpenPostComments, onPressPost, onJoinPost, onToggleReportLike, onTogglePostLike, likedMap, likesMap, onSolicitarReport, onCompletarReport, currentUserId]
   );
 
   const keyExtractor = useCallback((item: FeedItem) => {

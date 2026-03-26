@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
-import { useColors } from '../../contexts/ThemeContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-function getTabMeta(routeName: string) {
+function getTabMeta(routeName: string, t: (key: string) => string) {
   if (routeName === 'index') {
     return {
-      label: 'Inicio',
+      label: t('tab_home'),
       icon: (color: string, size: number) => (
         <Ionicons name="home" size={size} color={color} />
       ),
@@ -27,7 +27,7 @@ function getTabMeta(routeName: string) {
 
   if (routeName === 'map') {
     return {
-      label: 'Mapa',
+      label: 'Mapa', // To do: add to dictionary if needed
       icon: (color: string, size: number) => (
         <Ionicons name="map" size={size} color={color} />
       ),
@@ -36,7 +36,7 @@ function getTabMeta(routeName: string) {
 
   if (routeName === 'profile') {
     return {
-      label: 'Perfil',
+      label: t('tab_profile'),
       icon: (color: string, size: number) => (
         <Ionicons name="person" size={size} color={color} />
       ),
@@ -45,7 +45,7 @@ function getTabMeta(routeName: string) {
 
   if (routeName === 'reports') {
     return {
-      label: 'Reportes',
+      label: t('tab_reports'),
       icon: (color: string, size: number) => (
         <Ionicons name="alert-circle" size={size} color={color} />
       ),
@@ -54,7 +54,7 @@ function getTabMeta(routeName: string) {
 
   if (routeName === 'chat') {
     return {
-      label: 'IA',
+      label: t('tab_chat'),
       icon: (color: string, size: number) => (
         <Ionicons name="chatbubble-ellipses" size={size} color={color} />
       ),
@@ -72,7 +72,7 @@ function getTabMeta(routeName: string) {
 
   if (routeName === 'verify') {
     return {
-      label: 'Verificar',
+      label: 'Verificar', // Admin tool, skip translation or add to dict
       icon: (color: string, size: number) => (
         <Ionicons name="shield-checkmark" size={size} color={color} />
       ),
@@ -91,7 +91,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { isVerifier } = useAuth();
-  const C = useColors();
+  const { t } = useLanguage();
 
   // Filter out hidden tabs based on auth role
   const visibleRoutes = state.routes.filter((route) => {
@@ -204,6 +204,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
 export default function TabLayout() {
   const { isVerifier } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <Tabs
@@ -215,7 +216,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Inicio',
+          title: t('tab_home'),
         }}
       />
       <Tabs.Screen
@@ -228,13 +229,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reportes',
+          title: t('tab_reports'),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'IA',
+          title: t('tab_chat'),
           href: null,
         }}
       />
@@ -254,7 +255,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: t('tab_profile'),
         }}
       />
     </Tabs>

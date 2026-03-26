@@ -31,35 +31,24 @@ import { File as ExpoFile } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system';
 import ReportMapPicker from '../../components/ReportMapPicker';
 import { useUserLocation } from '../../hooks/useUserLocation';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-const SUGGESTIONS = [
+const getSuggestions = (t: (k: string) => string) => [
   {
-    category: 'Eco-puntos y nivel',
-    items: [
-      '¿Cuántos eco-puntos tengo?',
-      '¿En qué nivel estoy?',
-      '¿Cuántos puntos me faltan para subir de nivel?',
-    ],
+    category: t('chat_sugg_cat1'),
+    items: [t('chat_sugg_cat1_1'), t('chat_sugg_cat1_2'), t('chat_sugg_cat1_3')],
   },
   {
-    category: 'Reportes',
-    items: [
-      'Quiero reportar basura en...',
-      '¿Cómo van mis reportes?',
-      'Mostrar mis últimos reportes',
-    ],
+    category: t('chat_sugg_cat2'),
+    items: [t('chat_sugg_cat2_1'), t('chat_sugg_cat2_2'), t('chat_sugg_cat2_3')],
   },
   {
-    category: 'Recompensas y servicios',
-    items: [
-      '¿Qué recompensas puedo canjear?',
-      '¿Hay servicios comunitarios disponibles?',
-      'Quiero participar en una limpieza',
-    ],
+    category: t('chat_sugg_cat3'),
+    items: [t('chat_sugg_cat3_1'), t('chat_sugg_cat3_2'), t('chat_sugg_cat3_3')],
   },
   {
-    category: 'Notificaciones',
-    items: ['¿Tengo notificaciones nuevas?', '¿Qué pasó con mi reporte?'],
+    category: t('chat_sugg_cat4'),
+    items: [t('chat_sugg_cat4_1'), t('chat_sugg_cat4_2')],
   },
 ];
 
@@ -67,6 +56,7 @@ export default function ChatTabScreen() {
   const insets = useSafeAreaInsets();
   const C = useColors();
   const flatListRef = useRef<FlatList>(null);
+  const { t } = useLanguage();
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mapSelectedImage, setMapSelectedImage] = useState<string | null>(null);
@@ -162,7 +152,7 @@ export default function ChatTabScreen() {
   const takeMapPhoto = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara.');
+      Alert.alert(t('error'), t('chat_err_camera'));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -200,7 +190,7 @@ export default function ChatTabScreen() {
       setMapUploadedUrl(urlData.publicUrl);
     } catch (err) {
       console.error('Error subiendo imagen:', err);
-      Alert.alert('Error', 'No se pudo subir la imagen. Intenta de nuevo.');
+      Alert.alert(t('error'), t('chat_err_upload'));
       setMapSelectedImage(null);
     } finally {
       setIsMapUploading(false);
@@ -270,7 +260,7 @@ export default function ChatTabScreen() {
       }
     }
 
-    sendMessage(text || 'He adjuntado una foto para el reporte.', imageUrl);
+    sendMessage(text || t('chat_attached_photo'), imageUrl);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
@@ -347,8 +337,8 @@ export default function ChatTabScreen() {
             <Ionicons name="sparkles" size={20} color="#FFF" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Asistente IA</Text>
-            <Text style={styles.headerSub}>En línea</Text>
+            <Text style={styles.headerTitle}>{t('chat_ai_assistant')}</Text>
+            <Text style={styles.headerSub}>{t('chat_online')}</Text>
           </View>
         </View>
         <Pressable onPress={resetChat} style={styles.resetBtn}>
@@ -369,13 +359,12 @@ export default function ChatTabScreen() {
             <View style={styles.emptyIcon}>
               <Ionicons name="chatbubbles-outline" size={48} color={C.primary} />
             </View>
-            <Text style={styles.emptyTitle}>Hola, soy tu asistente</Text>
+            <Text style={styles.emptyTitle}>{t('chat_welcome_title')}</Text>
             <Text style={styles.emptyText}>
-              Puedo ayudarte a crear reportes, consultar tus puntos, ver recompensas y mucho más.
-              ¡Pregúntame lo que necesites!
+              {t('chat_welcome_desc')}
             </Text>
             <ScrollView style={styles.suggestionsContainer} showsVerticalScrollIndicator={false}>
-              {SUGGESTIONS.map((section) => (
+              {getSuggestions(t).map((section) => (
                 <View key={section.category} style={styles.suggestionSection}>
                   <Text style={styles.suggestionSectionTitle}>{section.category}</Text>
                   {section.items.map((item) => (
@@ -432,8 +421,8 @@ export default function ChatTabScreen() {
           </Animated.View>
           <TextInput
             style={styles.input}
-            placeholder={isRecording ? 'Escuchando...' : isSttLoading ? 'Procesando...' : 'Escribe un mensaje...'}
-            placeholderTextColor={C.textMuted}
+            placeholder={isRecording ? t('chat_input_listening') : isSttLoading ? t('chat_input_processing') : t('chat_input_placeholder')}
+            placeholderTextColor={Colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -460,12 +449,12 @@ export default function ChatTabScreen() {
       <Modal visible={mapVisible} animationType="slide" transparent={false}>
         <View style={[styles.mapModal, { paddingTop: insets.top }]}>
           <View style={styles.mapHeader}>
-            <Text style={styles.mapTitle}>Selecciona la ubicación del reporte</Text>
+            <Text style={styles.mapTitle}>{t('chat_map_title')}</Text>
             <Pressable onPress={() => { setMapVisible(false); setPendingDraftId(null); clearMapImage(); }}>
               <Ionicons name="close" size={24} color={C.text} />
             </Pressable>
           </View>
-          <Text style={styles.mapHint}>Toca el mapa para colocar el pin donde está el problema</Text>
+          <Text style={styles.mapHint}>{t('chat_map_hint')}</Text>
           <View style={styles.mapContainer}>
             <ReportMapPicker
               userLat={location?.latitude ?? 31.3182}
@@ -478,20 +467,20 @@ export default function ChatTabScreen() {
           </View>
           {pinCoord && (
             <View style={styles.mapCoordInfo}>
-              <Ionicons name="checkmark-circle" size={16} color={C.primary} />
-              <Text style={styles.mapCoordText}>Ubicación seleccionada</Text>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+              <Text style={styles.mapCoordText}>{t('chat_map_selected')}</Text>
             </View>
           )}
 
           {/* Image picker for report photo */}
           <View style={styles.mapImageSection}>
-            <Text style={styles.mapImageLabel}>📷 Foto del problema (opcional)</Text>
+            <Text style={styles.mapImageLabel}>{t('chat_map_photo_label')}</Text>
             {mapSelectedImage ? (
               <View style={styles.mapImagePreview}>
                 <Image source={{ uri: mapSelectedImage }} style={styles.mapImageThumb} />
                 <View style={styles.mapImageInfo}>
                   <Text style={styles.mapImageText} numberOfLines={1}>
-                    {isMapUploading ? 'Subiendo...' : 'Imagen lista ✓'}
+                    {isMapUploading ? t('chat_map_uploading') : t('chat_map_ready')}
                   </Text>
                 </View>
                 <Pressable onPress={clearMapImage} style={styles.mapImageClose}>
@@ -501,12 +490,12 @@ export default function ChatTabScreen() {
             ) : (
               <View style={styles.mapImageButtons}>
                 <Pressable onPress={pickMapImage} style={styles.mapImageBtn}>
-                <Ionicons name="images-outline" size={20} color={C.primary} />
-                  <Text style={styles.mapImageBtnText}>Galería</Text>
+                  <Ionicons name="images-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.mapImageBtnText}>{t('chat_map_btn_gallery')}</Text>
                 </Pressable>
                 <Pressable onPress={takeMapPhoto} style={styles.mapImageBtn}>
-                  <Ionicons name="camera-outline" size={20} color={C.primary} />
-                  <Text style={styles.mapImageBtnText}>Cámara</Text>
+                  <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.mapImageBtnText}>{t('chat_map_btn_camera')}</Text>
                 </Pressable>
               </View>
             )}
@@ -518,7 +507,7 @@ export default function ChatTabScreen() {
             disabled={!pinCoord || isMapUploading}
           >
             <Ionicons name="checkmark" size={20} color="#FFF" />
-            <Text style={styles.mapConfirmText}>Confirmar y crear reporte</Text>
+            <Text style={styles.mapConfirmText}>{t('chat_map_confirm')}</Text>
           </Pressable>
         </View>
       </Modal>

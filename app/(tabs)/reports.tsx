@@ -26,6 +26,7 @@ import { useUserLocation } from '../../hooks/useUserLocation';
 import { haversineMeters } from '../../utils/geo';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { File } from 'expo-file-system';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -36,23 +37,12 @@ const MAX_DISTANCE = 500; // metros
 const SCREEN_W = Dimensions.get('window').width;
 
 // ─── Status helpers ──────────────────────────────────────────
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  verified: 'Verificado',
-  in_progress: 'En progreso',
-  resolved: 'Resuelto',
-  rejected: 'Rechazado',
-};
-
-const getStatusEntry = (status: string, C: any) => {
-  const map: Record<string, { label: string; bg: string; fg: string }> = {
-    pending: { label: 'Pendiente', bg: C.status.pending, fg: C.status.pendingText },
-    verified: { label: 'Verificado', bg: C.status.verified, fg: C.status.verifiedText },
-    in_progress: { label: 'En progreso', bg: C.status.inProgress, fg: C.status.inProgressText },
-    resolved: { label: 'Resuelto', bg: C.status.resolved, fg: C.status.resolvedText },
-    rejected: { label: 'Rechazado', bg: C.status.rejected, fg: C.status.rejectedText },
-  };
-  return map[status] ?? map.pending;
+const STATUS_MAP: Record<ReportStatus, { labelKey: string; bg: string; fg: string }> = {
+  pending: { labelKey: 'report_status_pending', bg: Colors.status.pending, fg: Colors.status.pendingText },
+  verified: { labelKey: 'report_status_verified', bg: Colors.status.verified, fg: Colors.status.verifiedText },
+  in_progress: { labelKey: 'report_status_in_progress', bg: Colors.status.inProgress, fg: Colors.status.inProgressText },
+  resolved: { labelKey: 'report_status_resolved', bg: Colors.status.resolved, fg: Colors.status.resolvedText },
+  rejected: { labelKey: 'report_status_rejected', bg: Colors.status.rejected, fg: Colors.status.rejectedText },
 };
 
 // ─── Interfaces ─────────────────────────────────────────────
@@ -68,8 +58,7 @@ interface ReportItem {
 
 // ─── Small report card ──────────────────────────────────────
 function ReportCard({ report }: { report: ReportItem }) {
-  const C = useColors();
-  const s = makeS(C);
+  const { t } = useLanguage();
   const cat = REPORT_CATEGORIES.find(c => c.id === report.category);
   const st = getStatusEntry(report.status, C);
   return (
@@ -78,7 +67,7 @@ function ReportCard({ report }: { report: ReportItem }) {
         <View style={[s.catDot, { backgroundColor: cat?.color ?? C.textMuted }]} />
         <Text style={s.cardTitle} numberOfLines={1}>{report.title}</Text>
         <View style={[s.statusChip, { backgroundColor: st.bg }]}>
-          <Text style={[s.statusText, { color: st.fg }]}>{st.label}</Text>
+          <Text style={[s.statusText, { color: st.fg }]}>{t(st.labelKey)}</Text>
         </View>
       </View>
       <Text style={s.cardDesc} numberOfLines={2}>{report.description}</Text>
@@ -99,8 +88,7 @@ export default function ReportsScreen() {
   const router = useRouter();
   const { location } = useUserLocation();
   const { user } = useAuth();
-  const C = useColors();
-  const s = makeS(C);
+  const { t } = useLanguage();
 
   // View toggle
   const [showForm, setShowForm] = useState(false);
@@ -243,7 +231,7 @@ export default function ReportsScreen() {
       }
 
       if (!profileId) {
-        Alert.alert('Error', 'No se encontro un usuario. Inicia sesion primero.');
+        Alert.alert(t('error'), t('report_error_auth'));
         return;
       }
 
@@ -284,9 +272,9 @@ export default function ReportsScreen() {
       } as any);
 
       if (error) {
-        Alert.alert('Error', 'No se pudo enviar el reporte: ' + error.message);
+        Alert.alert(t('error'), t('report_error_send') + error.message);
       } else {
-        Alert.alert('Reporte enviado', 'Tu reporte ha sido registrado y sera verificado pronto.');
+        Alert.alert(t('report_success_title'), t('report_success_msg'));
         resetForm();
         fetchMyReports();
       }
@@ -303,7 +291,7 @@ export default function ReportsScreen() {
         'Posible duplicado',
         `Hay ${nearbyReports.length} reporte(s) a menos de 500m.\nMas cercano: "${closest.title}" a ${closest.distance}m.\n\nEl verificador sera notificado.`,
         [
-          { text: 'Cancelar', style: 'cancel' },
+          { text: t('cancel'), style: 'cancel' },
           { text: 'Enviar de todos modos', onPress: doSubmit },
         ],
       );
@@ -332,11 +320,11 @@ export default function ReportsScreen() {
     <View style={[s.screen, { paddingTop: insets.top, backgroundColor: C.background }]}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>{showForm ? 'Nuevo reporte' : 'Mis reportes'}</Text>
+        <Text style={s.headerTitle}>{showForm ? t('report_new_title') : t('report_my_title')}</Text>
         {showForm && (
           <Pressable style={s.headerBtnCancel} onPress={resetForm}>
-            <Ionicons name="close" size={20} color={C.error} />
-            <Text style={s.headerBtnTextCancel}>Cancelar</Text>
+            <Ionicons name="close" size={20} color={Colors.error} />
+            <Text style={s.headerBtnTextCancel}>{t('cancel')}</Text>
           </Pressable>
         )}
       </View>
@@ -350,9 +338,9 @@ export default function ReportsScreen() {
             </View>
           ) : myReports.length === 0 ? (
             <View style={s.empty}>
-              <Ionicons name="document-text-outline" size={48} color={C.textMuted} />
-              <Text style={s.emptyText}>Aun no hay reportes</Text>
-              <Text style={[s.emptyText, { fontSize: 13 }]}>Toca el boton + para crear uno</Text>
+              <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
+              <Text style={s.emptyText}>{t('report_empty_title')}</Text>
+              <Text style={[s.emptyText, { fontSize: 13 }]}>{t('report_empty_hint')}</Text>
             </View>
           ) : (
             myReports.map(r => (
@@ -367,7 +355,7 @@ export default function ReportsScreen() {
       {showForm && (
         <ScrollView contentContainerStyle={s.formContent} showsVerticalScrollIndicator={false}>
           {/* Category */}
-          <Text style={s.label}>Categoria</Text>
+          <Text style={s.label}>{t('report_form_category')}</Text>
           <View style={s.catRow}>
             {REPORT_CATEGORIES.map(cat => {
               const selected = category === cat.id;
@@ -389,29 +377,29 @@ export default function ReportsScreen() {
           </View>
 
           {/* Title */}
-          <Text style={s.label}>Titulo</Text>
+          <Text style={s.label}>{t('report_form_title')}</Text>
           <TextInput
             style={s.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="Ej: Bache peligroso en Av. Principal"
-            placeholderTextColor={C.textMuted}
+            placeholder={t('report_form_title_placeholder')}
+            placeholderTextColor={Colors.textMuted}
           />
 
           {/* Description */}
-          <Text style={s.label}>Descripcion</Text>
+          <Text style={s.label}>{t('report_form_desc')}</Text>
           <TextInput
             style={[s.input, s.inputMulti]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe el problema con detalle..."
-            placeholderTextColor={C.textMuted}
+            placeholder={t('report_form_desc_placeholder')}
+            placeholderTextColor={Colors.textMuted}
             multiline
             numberOfLines={3}
           />
 
           {/* Photo */}
-          <Text style={s.label}>Foto comprobatoria (obligatoria)</Text>
+          <Text style={s.label}>{t('report_form_photo')}</Text>
           {photoUri ? (
             <View style={s.photoPreview}>
               <Image source={{ uri: photoUri }} style={s.photoImage} />
@@ -422,19 +410,19 @@ export default function ReportsScreen() {
           ) : (
             <View style={s.photoRow}>
               <Pressable style={s.photoBtn} onPress={takePhoto}>
-                <Ionicons name="camera-outline" size={22} color={C.primary} />
-                <Text style={s.photoBtnText}>Camara</Text>
+                <Ionicons name="camera-outline" size={22} color={Colors.primary} />
+                <Text style={s.photoBtnText}>{t('report_form_photo_camera')}</Text>
               </Pressable>
               <Pressable style={s.photoBtn} onPress={pickPhoto}>
-                <Ionicons name="image-outline" size={22} color={C.primary} />
-                <Text style={s.photoBtnText}>Galeria</Text>
+                <Ionicons name="image-outline" size={22} color={Colors.primary} />
+                <Text style={s.photoBtnText}>{t('report_form_photo_gallery')}</Text>
               </Pressable>
             </View>
           )}
 
           {/* Map location picker */}
-          <Text style={s.label}>Ubicacion del reporte</Text>
-          <Text style={s.hint}>Toca el mapa para colocar el pin (max {MAX_DISTANCE}m de ti)</Text>
+          <Text style={s.label}>{t('report_form_location')}</Text>
+          <Text style={s.hint}>{t('report_form_location_hint')}</Text>
           <ReportMapPicker
             userLat={userLat}
             userLng={userLng}
@@ -466,7 +454,7 @@ export default function ReportsScreen() {
                 <Text style={s.warnTitle}>Reportes cercanos detectados</Text>
                 {nearbyReports.map(nr => (
                   <Text key={nr.id} style={s.warnItem}>
-                    - "{nr.title}" a {nr.distance}m ({STATUS_LABELS[nr.status as ReportStatus] ?? 'Pendiente'})
+                    - "{nr.title}" a {nr.distance}m ({t((STATUS_MAP[nr.status as ReportStatus] ?? STATUS_MAP.pending).labelKey)})
                   </Text>
                 ))}
                 <Text style={s.warnHint}>El verificador sera notificado de posibles duplicados.</Text>
@@ -481,16 +469,16 @@ export default function ReportsScreen() {
             disabled={!canSubmit}
           >
             <Ionicons name="send" size={18} color="#fff" />
-            <Text style={s.submitText}>Enviar reporte</Text>
+            <Text style={s.submitText}>{t('report_form_submit')}</Text>
           </Pressable>
 
           {!canSubmit && (
             <Text style={s.missingHint}>
-              {!category ? 'Selecciona una categoria' :
-               !title.trim() ? 'Agrega un titulo' :
-               !description.trim() ? 'Agrega una descripcion' :
-               !photoUri ? 'Sube una foto comprobatoria' :
-               !pinCoord ? 'Selecciona la ubicacion en el mapa' :
+              {!category ? t('report_form_missing_cat') :
+               !title.trim() ? t('report_form_missing_title') :
+               !description.trim() ? t('report_form_missing_desc') :
+               !photoUri ? t('report_form_missing_photo') :
+               !pinCoord ? t('report_form_missing_loc') :
                pinError ?? ''}
             </Text>
           )}
