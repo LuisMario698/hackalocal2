@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { Audio } from 'expo-av';
-import { supabase } from '../lib/supabase';
 
 interface UseSpeechRecognitionProps {
   language?: string;
@@ -83,8 +82,7 @@ export const useSpeechRecognition = ({
 
       // Enviar a Edge Function (que tiene la API key de OpenAI)
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token || '';
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const transcribeResponse = await fetch(
         `${supabaseUrl}/functions/v1/transcribe-audio`,
@@ -92,15 +90,16 @@ export const useSpeechRecognition = ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            apikey: supabaseAnonKey,
           },
           body: JSON.stringify({ audio_base64: base64 }),
         }
       );
 
       if (!transcribeResponse.ok) {
-        const errorData = await transcribeResponse.json();
-        setError(`Error: ${errorData.error || 'desconocido'}`);
+        const errorData = await transcribeResponse.json().catch(() => ({}));
+        setError(`Error: ${errorData.error || 'No se pudo transcribir el audio'}`);
         return;
       }
 

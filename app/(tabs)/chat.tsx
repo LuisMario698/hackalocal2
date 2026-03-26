@@ -21,7 +21,7 @@ import TypingIndicator from '../../components/chat/TypingIndicator';
 import { ChatMessage, useChat } from '../../hooks/useChat';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Colors } from '../../constants/Colors';
-import { CURRENT_USER } from '../../constants/MockData';
+import { useAuth } from '../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 
@@ -79,6 +79,8 @@ export default function ChatTabScreen() {
     };
   }, []);
 
+  const { user, profile } = useAuth();
+
   // STT con OpenAI Whisper (Edge Function con API key en Supabase)
   const {
     transcript,
@@ -89,17 +91,9 @@ export default function ChatTabScreen() {
     error: sttError,
   } = useSpeechRecognition({ language: 'es' });
 
-  // Mapeo de rol mock → rol DB
-  const roleMap: Record<string, 'client' | 'association' | 'admin'> = {
-    citizen: 'client',
-    organization: 'association',
-    authority: 'admin',
-    business: 'client',
-  };
-
   const { messages, isLoading, sendMessage, resetChat } = useChat({
-    userId: CURRENT_USER.id,
-    userRole: roleMap[CURRENT_USER.role] || 'client',
+    userId: user?.id ?? '',
+    userRole: (profile?.role as 'client' | 'association' | 'admin') ?? 'client',
   });
 
   // Actualizar input cuando termina el STT
