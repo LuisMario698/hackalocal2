@@ -1,7 +1,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { Profile } from '../lib/database.types';
+
+export interface Profile {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  role: 'client' | 'association' | 'admin';
+  can_verify_reports: boolean;
+  eco_points: number;
+  level: number;
+  reports_count: number;
+  tasks_completed: number;
+  streak_days: number;
+}
 
 interface AuthCtx {
   session: Session | null;

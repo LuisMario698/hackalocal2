@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -9,7 +10,6 @@ import {
   TextInput,
   View,
   ScrollView,
-  Image,
   ActivityIndicator,
   Animated,
 } from 'react-native';
@@ -21,9 +21,9 @@ import TypingIndicator from '../../components/chat/TypingIndicator';
 import { ChatMessage, useChat } from '../../hooks/useChat';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Colors } from '../../constants/Colors';
-import { CURRENT_USER } from '../../constants/MockData';
-import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import * as ImagePicker from 'expo-image-picker';
 
 const SUGGESTIONS = [
   {
@@ -79,6 +79,8 @@ export default function ChatTabScreen() {
     };
   }, []);
 
+  const { user, profile } = useAuth();
+
   // STT con OpenAI Whisper (Edge Function con API key en Supabase)
   const {
     transcript,
@@ -89,17 +91,9 @@ export default function ChatTabScreen() {
     error: sttError,
   } = useSpeechRecognition({ language: 'es' });
 
-  // Mapeo de rol mock → rol DB
-  const roleMap: Record<string, 'client' | 'association' | 'admin'> = {
-    citizen: 'client',
-    organization: 'association',
-    authority: 'admin',
-    business: 'client',
-  };
-
   const { messages, isLoading, sendMessage, resetChat } = useChat({
-    userId: CURRENT_USER.id,
-    userRole: roleMap[CURRENT_USER.role] || 'client',
+    userId: user?.id ?? '',
+    userRole: (profile?.role as 'client' | 'association' | 'admin') ?? 'client',
   });
 
   // Actualizar input cuando termina el STT
@@ -112,33 +106,28 @@ export default function ChatTabScreen() {
   const handleSend = async () => {
     if (!inputText.trim() && !selectedImage) return;
 
-    // Si hay imagen, subirla primero
     let imageUrl: string | undefined;
     if (selectedImage) {
       try {
-        const filename = `${Date.now()}.jpg`;
-        const { data, error } = await supabase.storage
+        const filename = `chat-${Date.now()}.jpg`;
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        const { error } = await supabase.storage
           .from('report-photos')
-          .upload(filename, {
-            uri: selectedImage,
-            type: 'image/jpeg',
-            name: filename,
-          } as any);
+          .upload(filename, blob, { contentType: 'image/jpeg' });
 
-        if (error) throw error;
-
-        // Obtener URL pública
-        const { data: urlData } = supabase.storage
-          .from('report-photos')
-          .getPublicUrl(filename);
-        imageUrl = urlData.publicUrl;
+        if (!error) {
+          const { data: urlData } = supabase.storage
+            .from('report-photos')
+            .getPublicUrl(filename);
+          imageUrl = urlData.publicUrl;
+        }
       } catch (err) {
         console.error('Error uploading image:', err);
-        // Continuar sin imagen en caso de error
       }
     }
 
-    sendMessage(inputText, imageUrl);
+    sendMessage(inputText || 'He adjuntado una foto para el reporte.', imageUrl);
     setInputText('');
     setSelectedImage(null);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -146,25 +135,23 @@ export default function ChatTabScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
+      quality: 0.7,
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
     });
-
-    if (!result.canceled) {
+    if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0].uri);
     }
   };
 
   const takePhoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) return;
     const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
     });
-
-    if (!result.canceled) {
+    if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0].uri);
     }
   };
@@ -285,10 +272,7 @@ export default function ChatTabScreen() {
         {selectedImage && (
           <View style={styles.imagePreview}>
             <Image source={{ uri: selectedImage }} style={styles.imageThumbnail} />
-            <Pressable
-              onPress={() => setSelectedImage(null)}
-              style={styles.removeImageBtn}
-            >
+            <Pressable onPress={() => setSelectedImage(null)} style={styles.removeImageBtn}>
               <Ionicons name="close" size={16} color="#FFF" />
             </Pressable>
           </View>
@@ -459,6 +443,7 @@ const styles = StyleSheet.create({
   imagePreview: {
     marginBottom: 10,
     position: 'relative',
+    alignSelf: 'flex-start',
   },
   imageThumbnail: {
     width: 60,
@@ -469,9 +454,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#E63946',
     alignItems: 'center',
     justifyContent: 'center',
