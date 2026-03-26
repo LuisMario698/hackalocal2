@@ -151,7 +151,7 @@ export const MY_CLAIMS: MockClaim[] = [
 ];
 
 // ============ REPORTES ============
-export type ReportStatus = 'pending' | 'in_progress' | 'resolved';
+export type ReportStatus = 'pending' | 'verified' | 'in_progress' | 'resolved' | 'rejected';
 
 export interface MockReport {
   id: string;
