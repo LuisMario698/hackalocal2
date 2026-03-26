@@ -180,6 +180,7 @@ export default function MapScreen() {
     const { data, error } = await supabase
       .from('reports')
       .select('id, title, category, latitude, longitude, photo_url, status, description')
+      .in('status', ['pending', 'verified'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -198,13 +199,36 @@ export default function MapScreen() {
       description: r.description ?? null,
     }));
 
-    setMapReports(mapped);
+    setMapReports(prev => {
+      // If selected report is no longer in the new list, deselect it
+      setSelectedReport(current => {
+        if (current && !mapped.find(r => r.id === current.id)) return null;
+        return current;
+      });
+      return mapped;
+    });
   }, []);
 
   useEffect(() => {
     setLoadingReports(true);
     fetchMapReports().finally(() => setLoadingReports(false));
+
+    const channel = supabase
+      .channel('map-reports')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+        fetchMapReports();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [fetchMapReports]);
+
+  // Refresh when tab is focused (e.g. coming back from attend-report)
+  useFocusEffect(
+    useCallback(() => {
+      fetchMapReports();
+    }, [fetchMapReports])
+  );
 
   const filteredReports = activeFilter === 'all' 
     ? mapReports 
