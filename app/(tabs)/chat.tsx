@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -18,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChatBubble from '../../components/chat/ChatBubble';
 import TypingIndicator from '../../components/chat/TypingIndicator';
+import { decode } from 'base64-arraybuffer';
 import { ChatMessage, useChat } from '../../hooks/useChat';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Colors } from '../../constants/Colors';
@@ -25,6 +28,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { File as ExpoFile } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
+import ReportMapPicker from '../../components/ReportMapPicker';
+import { useUserLocation } from '../../hooks/useUserLocation';
 
 const SUGGESTIONS = [
   {
@@ -62,8 +68,19 @@ export default function ChatTabScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [mapSelectedImage, setMapSelectedImage] = useState<string | null>(null);
+  const [mapUploadedUrl, setMapUploadedUrl] = useState<string | null>(null);
+  const [isMapUploading, setIsMapUploading] = useState(false);
   const recordingScale = useRef(new Animated.Value(1)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Map picker state for report creation
+  const [mapVisible, setMapVisible] = useState(false);
+  const [pendingDraftId, setPendingDraftId] = useState<string | null>(null);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [pinCoord, setPinCoord] = useState<{ latitude: number; longitude: number } | null>(null);
+  const { location } = useUserLocation();
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -92,10 +109,107 @@ export default function ChatTabScreen() {
     error: sttError,
   } = useSpeechRecognition({ language: 'es' });
 
-  const { messages, isLoading, sendMessage, resetChat } = useChat({
+  const { messages, isLoading, sendMessage, resetChat, confirmReport } = useChat({
     userId: user?.id ?? '',
     userRole: (profile?.role as 'client' | 'association' | 'admin') ?? 'client',
   });
+
+  // Detectar cuando hay un borrador pendiente y mostrar mapa
+  React.useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.pendingDraftId && !mapVisible) {
+      setPendingDraftId(lastMsg.pendingDraftId);
+      // Si el usuario adjuntó imagen recientemente, guardarla
+      const userMsgsWithImage = messages.filter(m => m.role === 'user' && m.image_url);
+      if (userMsgsWithImage.length > 0) {
+        setPendingImageUrl(userMsgsWithImage[userMsgsWithImage.length - 1].image_url!);
+      }
+      setPinCoord(null);
+      setMapVisible(true);
+    }
+  }, [messages]);
+
+  const handleMapPress = (e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+    setPinCoord(e.nativeEvent.coordinate);
+  };
+
+  const handleConfirmLocation = async () => {
+    if (!pinCoord || !pendingDraftId) return;
+    setMapVisible(false);
+    const imageToUse = mapUploadedUrl || pendingImageUrl;
+    await confirmReport(pendingDraftId, pinCoord.latitude, pinCoord.longitude, imageToUse ?? undefined);
+    setPendingDraftId(null);
+    setPendingImageUrl(null);
+    setPinCoord(null);
+    setMapSelectedImage(null);
+    setMapUploadedUrl(null);
+  };
+
+  const pickMapImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsEditing: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      setMapSelectedImage(uri);
+      uploadMapImage(uri);
+    }
+  };
+
+  const takeMapPhoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+      allowsEditing: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      setMapSelectedImage(uri);
+      uploadMapImage(uri);
+    }
+  };
+
+  const uploadMapImage = async (uri: string) => {
+    setIsMapUploading(true);
+    try {
+      const fileName = `report-${user?.id ?? 'anon'}/${Date.now()}.jpg`;
+      let uploadData: ArrayBuffer | Blob;
+
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        uploadData = await response.blob();
+      } else {
+        const file = new ExpoFile(uri);
+        uploadData = await file.arrayBuffer();
+      }
+
+      const { error } = await supabase.storage
+        .from('report-photos')
+        .upload(fileName, uploadData, { contentType: 'image/jpeg' });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from('report-photos')
+        .getPublicUrl(fileName);
+      setMapUploadedUrl(urlData.publicUrl);
+    } catch (err) {
+      console.error('Error subiendo imagen:', err);
+      Alert.alert('Error', 'No se pudo subir la imagen. Intenta de nuevo.');
+      setMapSelectedImage(null);
+    } finally {
+      setIsMapUploading(false);
+    }
+  };
+
+  const clearMapImage = () => {
+    setMapSelectedImage(null);
+    setMapUploadedUrl(null);
+  };
 
   // Actualizar input cuando termina el STT
   React.useEffect(() => {
@@ -104,14 +218,41 @@ export default function ChatTabScreen() {
     }
   }, [transcript, isRecording]);
 
+  const uploadImage = async (uri: string): Promise<string | undefined> => {
+    try {
+      const filename = `chat-${Date.now()}.jpg`;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const { error } = await supabase.storage
+        .from('report-photos')
+        .upload(filename, blob, { contentType: 'image/jpeg' });
+
+      if (!error) {
+        const { data: urlData } = supabase.storage
+          .from('report-photos')
+          .getPublicUrl(filename);
+        return urlData.publicUrl;
+      }
+    } catch (err) {
+      console.error('Error uploading image:', err);
+    }
+    return undefined;
+  };
+
   const handleSend = async () => {
-    if (!inputText.trim() && !selectedImage) return;
+    const text = inputText.trim();
+    if (!text && !selectedImage) return;
+
+    // Clear immediately
+    setInputText('');
+    const currentImage = selectedImage;
+    setSelectedImage(null);
 
     let imageUrl: string | undefined;
-    if (selectedImage) {
+    if (currentImage) {
       try {
         const filename = `chat-${Date.now()}.jpg`;
-        const file = new ExpoFile(selectedImage);
+        const file = new ExpoFile(currentImage);
         const arrayBuffer = await file.arrayBuffer();
         const { error } = await supabase.storage
           .from('report-photos')
@@ -128,9 +269,7 @@ export default function ChatTabScreen() {
       }
     }
 
-    sendMessage(inputText || 'He adjuntado una foto para el reporte.', imageUrl);
-    setInputText('');
-    setSelectedImage(null);
+    sendMessage(text || 'He adjuntado una foto para el reporte.', imageUrl);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
@@ -288,12 +427,6 @@ export default function ChatTabScreen() {
               <Ionicons name="mic" size={20} color={isRecording ? '#FFF' : Colors.primary} />
             </Pressable>
           </Animated.View>
-          <Pressable onPress={takePhoto} style={styles.iconBtn} disabled={isRecording}>
-            <Ionicons name="camera" size={20} color={Colors.primary} />
-          </Pressable>
-          <Pressable onPress={pickImage} style={styles.iconBtn} disabled={isRecording}>
-            <Ionicons name="image" size={20} color={Colors.primary} />
-          </Pressable>
           <TextInput
             style={styles.input}
             placeholder={isRecording ? 'Escuchando...' : isSttLoading ? 'Procesando...' : 'Escribe un mensaje...'}
@@ -320,6 +453,72 @@ export default function ChatTabScreen() {
           </Pressable>
         </View>
       </View>
+      {/* Map picker modal for report location */}
+      <Modal visible={mapVisible} animationType="slide" transparent={false}>
+        <View style={[styles.mapModal, { paddingTop: insets.top }]}>
+          <View style={styles.mapHeader}>
+            <Text style={styles.mapTitle}>Selecciona la ubicación del reporte</Text>
+            <Pressable onPress={() => { setMapVisible(false); setPendingDraftId(null); clearMapImage(); }}>
+              <Ionicons name="close" size={24} color={Colors.text} />
+            </Pressable>
+          </View>
+          <Text style={styles.mapHint}>Toca el mapa para colocar el pin donde está el problema</Text>
+          <View style={styles.mapContainer}>
+            <ReportMapPicker
+              userLat={location?.latitude ?? 31.3182}
+              userLng={location?.longitude ?? -113.5348}
+              pinCoord={pinCoord}
+              onPress={handleMapPress}
+              mapRef={mapRef}
+              maxDistance={5000}
+            />
+          </View>
+          {pinCoord && (
+            <View style={styles.mapCoordInfo}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+              <Text style={styles.mapCoordText}>Ubicación seleccionada</Text>
+            </View>
+          )}
+
+          {/* Image picker for report photo */}
+          <View style={styles.mapImageSection}>
+            <Text style={styles.mapImageLabel}>📷 Foto del problema (opcional)</Text>
+            {mapSelectedImage ? (
+              <View style={styles.mapImagePreview}>
+                <Image source={{ uri: mapSelectedImage }} style={styles.mapImageThumb} />
+                <View style={styles.mapImageInfo}>
+                  <Text style={styles.mapImageText} numberOfLines={1}>
+                    {isMapUploading ? 'Subiendo...' : 'Imagen lista ✓'}
+                  </Text>
+                </View>
+                <Pressable onPress={clearMapImage} style={styles.mapImageClose}>
+                  <Ionicons name="close-circle" size={22} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.mapImageButtons}>
+                <Pressable onPress={pickMapImage} style={styles.mapImageBtn}>
+                  <Ionicons name="images-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.mapImageBtnText}>Galería</Text>
+                </Pressable>
+                <Pressable onPress={takeMapPhoto} style={styles.mapImageBtn}>
+                  <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.mapImageBtnText}>Cámara</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          <Pressable
+            style={[styles.mapConfirmBtn, (!pinCoord || isMapUploading) && styles.mapConfirmBtnDisabled]}
+            onPress={handleConfirmLocation}
+            disabled={!pinCoord || isMapUploading}
+          >
+            <Ionicons name="checkmark" size={20} color="#FFF" />
+            <Text style={styles.mapConfirmText}>Confirmar y crear reporte</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -517,5 +716,117 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 12,
     fontWeight: '500',
+  },
+  // Map modal
+  mapModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+  },
+  mapTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  mapHint: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 12,
+  },
+  mapContainer: {
+    flex: 1,
+    minHeight: 450,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  mapCoordInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  mapCoordText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  // Map image section
+  mapImageSection: {
+    marginBottom: 12,
+  },
+  mapImageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  mapImageButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapImageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  mapImageBtnText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  mapImagePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 8,
+  },
+  mapImageThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  mapImageInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  mapImageText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  mapImageClose: {
+    padding: 4,
+  },
+  mapConfirmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginBottom: 30,
+  },
+  mapConfirmBtnDisabled: {
+    opacity: 0.4,
+  },
+  mapConfirmText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });

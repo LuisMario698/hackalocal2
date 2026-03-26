@@ -9,6 +9,7 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   image_url?: string;
+  pendingDraftId?: string;
 }
 
 interface UseChatOptions {
@@ -71,6 +72,7 @@ export function useChat({ userId, userRole }: UseChatOptions) {
           role: 'assistant',
           content: data.message,
           createdAt: new Date().toISOString(),
+          pendingDraftId: data.pending_draft_id,
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
@@ -96,5 +98,54 @@ export function useChat({ userId, userRole }: UseChatOptions) {
     setError(null);
   }, []);
 
-  return { messages, isLoading, error, sendMessage, resetChat, conversationId };
+  // Confirmar reporte con ubicación e imagen
+  const confirmReport = useCallback(
+    async (draftId: string, latitude: number, longitude: number, imageUrl?: string) => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/chat-agent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            message: `Confirmar reporte con draft_id: ${draftId}`,
+            confirm_draft_id: draftId,
+            confirm_latitude: latitude,
+            confirm_longitude: longitude,
+            confirm_image_url: imageUrl || undefined,
+            user_role: userRole,
+            user_id: userId,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Error confirmando reporte');
+
+        const data = await res.json();
+        const msg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: data.message || 'Reporte creado exitosamente.',
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, msg]);
+      } catch (err: any) {
+        const errorMsg: ChatMessage = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: 'Error al confirmar el reporte. Intenta de nuevo.',
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [conversationId, userId, userRole]
+  );
+
+  return { messages, isLoading, error, sendMessage, resetChat, conversationId, confirmReport };
 }

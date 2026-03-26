@@ -476,11 +476,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { conversation_id, message, image_url, user_role, user_id } = await req.json();
+    const body = await req.json();
+    const { conversation_id, message, image_url, user_role, user_id,
+            confirm_draft_id, confirm_latitude, confirm_longitude, confirm_image_url } = body;
 
     if (!message || !user_role || !user_id) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
+
+    const corsHeader = {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    };
 
     let convId = conversation_id;
 
@@ -494,6 +501,66 @@ Deno.serve(async (req: Request) => {
       if (error) throw error;
       convId = newConv.id;
     }
+
+    // ── Confirmación directa de reporte con ubicación ──
+    if (confirm_draft_id) {
+      const { data: draft, error: draftErr } = await supabase
+        .from("ai_content_drafts")
+        .select("*")
+        .eq("id", confirm_draft_id)
+        .eq("user_id", user_id)
+        .single();
+
+      if (draftErr || !draft) {
+        return new Response(
+          JSON.stringify({ conversation_id: convId, message: "No se encontró el borrador del reporte." }),
+          { headers: corsHeader }
+        );
+      }
+
+      const content = draft.content as any;
+      const addressFromText = extractAddress(content.description);
+      const { data: report, error: reportErr } = await supabase
+        .from("reports")
+        .insert({
+          user_id,
+          title: content.title,
+          description: content.description,
+          category: content.category,
+          address: content.address || addressFromText || "",
+          severity: content.severity,
+          latitude: confirm_latitude || 0,
+          longitude: confirm_longitude || 0,
+          photo_url: confirm_image_url || null,
+        })
+        .select("id, title, status")
+        .single();
+
+      if (reportErr) {
+        return new Response(
+          JSON.stringify({ conversation_id: convId, message: `Error al crear el reporte: ${reportErr.message}` }),
+          { headers: corsHeader }
+        );
+      }
+
+      await supabase.from("ai_content_drafts").update({ is_accepted: true }).eq("id", confirm_draft_id);
+
+      const confirmMsg = `¡Reporte "${report.title}" creado exitosamente! 🎉\n\nEstado: Pendiente de verificación.\nUn verificador revisará tu reporte pronto.`;
+
+      await supabase.from("ai_messages").insert({
+        conversation_id: convId,
+        role: "assistant",
+        content: confirmMsg,
+        input_type: "text",
+      });
+
+      return new Response(
+        JSON.stringify({ conversation_id: convId, message: confirmMsg }),
+        { headers: corsHeader }
+      );
+    }
+
+    // ── Flujo normal de chat ──
 
     // Guardar mensaje del usuario
     await supabase.from("ai_messages").insert({
@@ -525,6 +592,7 @@ Deno.serve(async (req: Request) => {
     let currentMessages = [...messages];
     let response = await callClaude(systemPrompt, currentMessages, tools);
     let maxIterations = 5;
+    let pendingDraftId: string | null = null;
 
     while (response.stop_reason === "tool_use" && maxIterations > 0) {
       maxIterations--;
@@ -537,6 +605,14 @@ Deno.serve(async (req: Request) => {
       for (const block of response.content) {
         if (block.type === "tool_use") {
           const result = await executeTool(block.name, block.input, user_id, convId);
+
+          // Si es crear_reporte_borrador, guardar el draft_id
+          if (block.name === "crear_reporte_borrador") {
+            try {
+              const parsed = JSON.parse(result);
+              if (parsed.draft_id) pendingDraftId = parsed.draft_id;
+            } catch {}
+          }
 
           // Guardar tool use en ai_messages como metadata
           await supabase.from("ai_messages").insert({
@@ -572,15 +648,10 @@ Deno.serve(async (req: Request) => {
       input_type: "text",
     });
 
-    return new Response(
-      JSON.stringify({ conversation_id: convId, message: assistantText }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
-    );
+    const responseBody: any = { conversation_id: convId, message: assistantText };
+    if (pendingDraftId) responseBody.pending_draft_id = pendingDraftId;
+
+    return new Response(JSON.stringify(responseBody), { headers: corsHeader });
   } catch (error: any) {
     console.error("Chat agent error:", error);
     return new Response(
