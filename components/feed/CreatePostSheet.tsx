@@ -63,14 +63,15 @@ export default function CreatePostSheet({ visible, onClose, onSubmit }: CreatePo
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
+    <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={styles.backdrop} onPress={handleClose} />
-        <View style={styles.centerWrap}>
+        <View style={styles.sheetWrap}>
           <View style={[styles.card, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
+            <View style={styles.handle} />
             <View style={styles.cardHeader}>
               <View style={styles.badgeCircle}>
                 <Ionicons name="create-outline" size={18} color={PRIMARY} />
@@ -159,28 +160,38 @@ export default function CreatePostSheet({ visible, onClose, onSubmit }: CreatePo
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,12,20,0.36)',
+    backgroundColor: 'rgba(8,12,20,0.45)',
   },
-  centerWrap: {
-    paddingHorizontal: 16,
+  sheetWrap: {
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     paddingTop: 14,
-    paddingHorizontal: 14,
-    maxHeight: '78%',
-    borderWidth: 1,
-    borderColor: '#E4EBF3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.14,
-    shadowRadius: 20,
-    elevation: 16,
+    paddingHorizontal: 16,
+    maxHeight: '86%',
+    minHeight: '56%',
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    overflow: 'hidden',
+  },
+  handle: {
+    width: 42,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#CBD3DE',
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   cardHeader: {
     flexDirection: 'row',
