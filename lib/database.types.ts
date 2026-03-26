@@ -33,6 +33,8 @@ export interface Profile {
   notification_radius_km: number;
   language: string;
   accessible_mode: boolean;
+  phone: string | null;
+  bio: string | null;
   created_at: string;
   updated_at: string;
 }

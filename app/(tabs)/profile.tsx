@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+  Image,
   LayoutAnimation,
   Platform,
   Pressable,
@@ -13,8 +14,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { BADGES, getUserLevel, getLevelProgress, getNextLevel } from '../../constants/Gamification';
-import { CURRENT_USER, LEADERBOARD, USER_HISTORY } from '../../constants/MockData';
 import BadgeCard from '../../components/BadgeCard';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  ecoPoints: number;
+  level: number;
+}
+
+interface ActionHistory {
+  id: string;
+  type: 'report' | 'task' | 'event' | 'verify' | 'redeem';
+  description: string;
+  points: number;
+  date: string;
+}
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -66,17 +84,101 @@ function MenuItem({ icon, label, subtitle, expanded, onPress, children, accentCo
 }
 
 export default function ProfileScreen() {
-  const user = CURRENT_USER;
-  const level = getUserLevel(user.ecoPoints);
-  const progress = getLevelProgress(user.ecoPoints);
-  const next = getNextLevel(user.ecoPoints);
-
+  const { profile, user, signOut } = useAuth();
   const router = useRouter();
   const [openSection, setOpenSection] = useState<SectionId | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [history, setHistory] = useState<ActionHistory[]>([]);
+  const [unlockedBadgeIds, setUnlockedBadgeIds] = useState<string[]>([]);
+
+  const avatarUrl = profile?.avatar_url;
+
+  // Derived from real profile or fallback
+  const userName = profile?.name ?? user?.user_metadata?.name ?? 'Usuario';
+  const ecoPoints = profile?.eco_points ?? 0;
+  const reportsCount = profile?.reports_count ?? 0;
+  const tasksCompleted = profile?.tasks_completed ?? 0;
+  const streakDays = profile?.streak_days ?? 0;
+
+  const level = getUserLevel(ecoPoints);
+  const progress = getLevelProgress(ecoPoints);
+  const next = getNextLevel(ecoPoints);
+
+  // Fetch leaderboard from DB
+  const fetchLeaderboard = useCallback(async () => {
+    const month = new Date().toISOString().slice(0, 7); // '2026-03'
+    const { data } = await supabase
+      .from('leaderboard_monthly')
+      .select('user_id, points, profiles(name)')
+      .eq('year_month', month)
+      .order('points', { ascending: false })
+      .limit(10) as any;
+
+    if (data && data.length > 0) {
+      setLeaderboard(data.map((row: any, i: number) => ({
+        rank: i + 1,
+        userId: row.user_id,
+        name: row.profiles?.name ?? 'Anonimo',
+        ecoPoints: row.points,
+        level: 1,
+      })));
+    }
+  }, []);
+
+  // Fetch points history from DB
+  const fetchHistory = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('points_history')
+      .select('id, points, action, reference_type, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20) as any;
+
+    if (data && data.length > 0) {
+      const typeMap: Record<string, ActionHistory['type']> = {
+        report_verified: 'report',
+        report_verification: 'verify',
+        service_completed: 'task',
+        reward_claimed: 'redeem',
+      };
+      setHistory(data.map((row: any) => ({
+        id: row.id,
+        type: typeMap[row.action] ?? 'report',
+        description: row.action.replace(/_/g, ' '),
+        points: row.points,
+        date: new Date(row.created_at).toISOString().slice(0, 10),
+      })));
+    }
+  }, [user]);
+
+  // Fetch user badges from DB
+  const fetchBadges = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('user_badges')
+      .select('badge_id, badges(name)')
+      .eq('user_id', user.id) as any;
+
+    if (data && data.length > 0) {
+      setUnlockedBadgeIds(data.map((row: any) => row.badges?.name ?? row.badge_id));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+    fetchHistory();
+    fetchBadges();
+  }, [fetchLeaderboard, fetchHistory, fetchBadges]);
 
   const toggle = (id: SectionId) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpenSection(prev => (prev === id ? null : id));
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/login' as any);
   };
 
   return (
@@ -85,18 +187,22 @@ export default function ProfileScreen() {
       <View style={s.header}>
         <View style={s.headerTop}>
           <View style={s.avatarCircle}>
-            <Text style={s.avatarText}>
-              {user.name.split(' ').map(n => n[0]).join('')}
-            </Text>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl, cache: 'reload' }} style={s.avatarImage} />
+            ) : (
+              <Text style={s.avatarText}>
+                {userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+              </Text>
+            )}
           </View>
           <View style={s.headerInfo}>
-            <Text style={s.userName}>{user.name}</Text>
+            <Text style={s.userName}>{userName}</Text>
             <Text style={s.userLevel}>
               {level.name}
             </Text>
           </View>
           <View style={s.pointsBadge}>
-            <Text style={s.pointsValue}>{user.ecoPoints}</Text>
+            <Text style={s.pointsValue}>{ecoPoints}</Text>
             <Text style={s.pointsLabel}>pts</Text>
           </View>
         </View>
@@ -107,7 +213,7 @@ export default function ProfileScreen() {
         </View>
         <Text style={s.miniBarText}>
           {next
-            ? `${next.minPoints - user.ecoPoints} pts para ${next.name}`
+            ? `${next.minPoints - ecoPoints} pts para ${next.name}`
             : 'Nivel maximo alcanzado'}
         </Text>
       </View>
@@ -115,10 +221,9 @@ export default function ProfileScreen() {
       {/* ===== STATS ROW (siempre visible) ===== */}
       <View style={s.statsRow}>
         {[
-          { val: user.reportsCount, label: 'Reportes', icon: 'location-outline' as const },
-          { val: user.tasksCompleted, label: 'Limpiezas', icon: 'leaf-outline' as const },
-          { val: `${user.kgRecycled}`, label: 'Kg reciclados', icon: 'refresh-outline' as const },
-          { val: `${user.streakDays}`, label: 'Racha', icon: 'flame-outline' as const },
+          { val: reportsCount, label: 'Reportes', icon: 'location-outline' as const },
+          { val: tasksCompleted, label: 'Limpiezas', icon: 'leaf-outline' as const },
+          { val: `${streakDays}`, label: 'Racha', icon: 'flame-outline' as const },
         ].map(stat => (
           <View key={stat.label} style={s.statBox}>
             <Ionicons name={stat.icon} size={16} color={Colors.primary} style={{ marginBottom: 4 }} />
@@ -132,7 +237,7 @@ export default function ProfileScreen() {
       <MenuItem
         icon="trophy"
         label="Medallas"
-        subtitle={`${user.unlockedBadges.length} de ${BADGES.length} desbloqueadas`}
+        subtitle={`${unlockedBadgeIds.length} de ${BADGES.length} desbloqueadas`}
         expanded={openSection === 'badges'}
         onPress={() => toggle('badges')}
       >
@@ -141,7 +246,7 @@ export default function ProfileScreen() {
             <BadgeCard
               key={badge.id}
               badge={badge}
-              unlocked={user.unlockedBadges.includes(badge.id)}
+              unlocked={unlockedBadgeIds.includes(badge.id)}
             />
           ))}
         </ScrollView>
@@ -154,8 +259,8 @@ export default function ProfileScreen() {
         expanded={openSection === 'leaderboard'}
         onPress={() => toggle('leaderboard')}
       >
-        {LEADERBOARD.map(entry => {
-          const isMe = entry.userId === user.id;
+        {leaderboard.map(entry => {
+          const isMe = entry.userId === user?.id;
           return (
             <View key={entry.userId} style={[s.leaderRow, isMe && s.leaderRowMe]}>
               <Text style={[
@@ -174,11 +279,11 @@ export default function ProfileScreen() {
       <MenuItem
         icon="time"
         label="Actividad reciente"
-        subtitle={`${USER_HISTORY.length} acciones`}
+        subtitle={`${history.length} acciones`}
         expanded={openSection === 'history'}
         onPress={() => toggle('history')}
       >
-        {USER_HISTORY.map(action => (
+        {history.map(action => (
           <View key={action.id} style={s.historyRow}>
             <View style={s.historyIconWrap}>
               <Ionicons name={ACTION_ICONS[action.type] ?? 'ellipse'} size={16} color={Colors.primary} />
@@ -203,6 +308,15 @@ export default function ProfileScreen() {
           <Ionicons name="settings-outline" size={20} color={Colors.primary} />
         </View>
         <Text style={s.settingsRowLabel}>Configuracion</Text>
+        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+      </Pressable>
+
+      {/* Boton cerrar sesion */}
+      <Pressable onPress={handleLogout} style={[s.settingsRow, { marginTop: 8 }]}>
+        <View style={[s.settingsRowIcon, { backgroundColor: '#fde8e8' }]}>
+          <Ionicons name="log-out-outline" size={20} color="#d32f2f" />
+        </View>
+        <Text style={[s.settingsRowLabel, { color: '#d32f2f' }]}>Cerrar sesion</Text>
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </Pressable>
 
@@ -237,6 +351,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  avatarImage: { width: 56, height: 56, borderRadius: 28 },
   headerInfo: { flex: 1, marginLeft: 14 },
   userName: { fontSize: 20, fontWeight: '700', color: Colors.text },
   userLevel: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },

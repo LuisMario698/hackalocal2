@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -12,16 +15,99 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-import { CURRENT_USER } from '../constants/MockData';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import * as ImagePicker from 'expo-image-picker';
+
+function uriToBase64(uri: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(xhr.response);
+    };
+    xhr.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    xhr.responseType = 'blob';
+    xhr.open('GET', uri, true);
+    xhr.send(null);
+  });
+}
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { profile, user, refreshProfile } = useAuth();
 
-  const [name, setName] = useState(CURRENT_USER.name);
-  const [email, setEmail] = useState('esteban.garcia@email.com');
-  const [phone, setPhone] = useState('+52 638 123 4567');
-  const [bio, setBio] = useState('Ciudadano activo de Puerto Penasco');
+  const [name, setName] = useState(profile?.name ?? '');
+  const [email] = useState(user?.email ?? '');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
+  const [bio, setBio] = useState(profile?.bio ?? '');
+  const [avatarUri, setAvatarUri] = useState<string | null>(profile?.avatar_url ?? null);
+  const [saving, setSaving] = useState(false);
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      let newAvatarUrl = profile?.avatar_url ?? null;
+
+      // Convert avatar to base64 data URI if changed
+      if (avatarUri && avatarUri !== profile?.avatar_url) {
+        try {
+          newAvatarUrl = await uriToBase64(avatarUri);
+        } catch (e: any) {
+          Alert.alert('Error foto', e?.message ?? 'No se pudo procesar la foto');
+        }
+      }
+
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({
+          name: name.trim() || profile?.name,
+          avatar_url: newAvatarUrl,
+          phone: phone.trim() || null,
+          bio: bio.trim() || null,
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        await refreshProfile();
+        Alert.alert('Listo', 'Perfil actualizado correctamente');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'No se pudo guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const initials = (name || 'U')
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2);
+
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
+
+  const roleName = profile?.role === 'admin' ? 'Administrador' : profile?.role === 'association' ? 'Asociacion' : 'Ciudadano';
 
   return (
     <ScrollView
@@ -39,12 +125,17 @@ export default function AccountScreen() {
 
       {/* Avatar */}
       <View style={s.avatarSection}>
-        <View style={s.avatarCircle}>
-          <Text style={s.avatarText}>
-            {name.split(' ').map(n => n[0]).join('')}
-          </Text>
-        </View>
-        <Pressable style={s.avatarBtn}>
+        <Pressable onPress={pickAvatar} style={s.avatarCircle}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={s.avatarImg} />
+          ) : (
+            <Text style={s.avatarText}>{initials}</Text>
+          )}
+          <View style={s.cameraOverlay}>
+            <Ionicons name="camera" size={16} color="#fff" />
+          </View>
+        </Pressable>
+        <Pressable onPress={pickAvatar} style={s.avatarBtn}>
           <Ionicons name="camera-outline" size={16} color={Colors.primary} />
           <Text style={s.avatarBtnText}>Cambiar foto</Text>
         </Pressable>
@@ -63,13 +154,10 @@ export default function AccountScreen() {
 
         <Text style={s.label}>Correo electronico</Text>
         <TextInput
-          style={s.input}
+          style={[s.input, { backgroundColor: Colors.borderLight }]}
           value={email}
-          onChangeText={setEmail}
-          placeholder="correo@ejemplo.com"
+          editable={false}
           placeholderTextColor={Colors.textMuted}
-          keyboardType="email-address"
-          autoCapitalize="none"
         />
 
         <Text style={s.label}>Numero de contacto</Text>
@@ -99,18 +187,22 @@ export default function AccountScreen() {
         <View style={s.infoRow}>
           <Ionicons name="shield-checkmark-outline" size={16} color={Colors.textSecondary} />
           <Text style={s.infoLabel}>Rol</Text>
-          <Text style={s.infoValue}>Ciudadano</Text>
+          <Text style={s.infoValue}>{roleName}</Text>
         </View>
         <View style={s.infoRow}>
           <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
           <Text style={s.infoLabel}>Miembro desde</Text>
-          <Text style={s.infoValue}>{CURRENT_USER.joinedAt}</Text>
+          <Text style={s.infoValue}>{memberSince}</Text>
         </View>
       </View>
 
       {/* Guardar */}
-      <Pressable style={s.saveBtn}>
-        <Text style={s.saveBtnText}>Guardar cambios</Text>
+      <Pressable style={s.saveBtn} onPress={handleSave} disabled={saving}>
+        {saving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={s.saveBtnText}>Guardar cambios</Text>
+        )}
       </Pressable>
 
       <View style={{ height: 100 }} />
@@ -159,11 +251,27 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    overflow: 'hidden',
   },
   avatarText: {
     fontSize: 28,
     fontWeight: '700',
     color: '#fff',
+  },
+  avatarImg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 26,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarBtn: {
     flexDirection: 'row',

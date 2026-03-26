@@ -13,6 +13,7 @@ interface AuthCtx {
   signUp: (email: string, password: string, name: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   skipLogin: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx>({
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthCtx>({
   signUp: async () => null,
   signOut: async () => {},
   skipLogin: () => {},
+  refreshProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -132,6 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsVerifier(false);
   };
 
+  const refreshProfile = async () => {
+    if (session?.user) await fetchProfile(session.user.id);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -143,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        refreshProfile,
         skipLogin,
       }}
     >
