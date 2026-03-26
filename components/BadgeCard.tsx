@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from './ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import type { Badge } from '../constants/Gamification';
