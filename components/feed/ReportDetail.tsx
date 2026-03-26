@@ -207,6 +207,18 @@ export default function ReportDetail({
               <Ionicons name="hand-left-outline" size={18} color={COLORS.primary} />
               <Text style={styles.joinBtnText}>Me uno</Text>
             </Pressable>
+            {report.status === 'verified' && (
+              <Pressable
+                style={styles.attendBtnDetail}
+                onPress={() => {
+                  onClose();
+                  router.push({ pathname: '/attend-report', params: { reportId: report.id } });
+                }}
+              >
+                <Ionicons name="construct-outline" size={18} color={COLORS.white} />
+                <Text style={styles.attendBtnText}>Atender</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* Likes count */}
@@ -461,6 +473,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  attendBtnDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+  },
+  attendBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   likesText: {
     fontSize: 14,

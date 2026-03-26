@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, Animated, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, Animated, Pressable, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ScaledText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapComponent from '../../components/MapComponent';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 
 export type ReportCategory = 'trash' | 'pothole' | 'drain' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
@@ -60,6 +60,9 @@ export interface ReportMock {
   category: ReportCategory;
   latitude: number;
   longitude: number;
+  photo_url: string | null;
+  status: string;
+  description: string | null;
 }
 
 const CATEGORIES = [
@@ -159,6 +162,7 @@ async function fetchStreetRoute(
 }
 
 export default function MapScreen() {
+  const router = useRouter();
   const { location, errorMsg } = useUserLocation();
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -175,7 +179,7 @@ export default function MapScreen() {
   const fetchMapReports = useCallback(async () => {
     const { data, error } = await supabase
       .from('reports')
-      .select('id, title, category, latitude, longitude')
+      .select('id, title, category, latitude, longitude, photo_url, status, description')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -189,6 +193,9 @@ export default function MapScreen() {
       category: r.category as ReportCategory,
       latitude: r.latitude,
       longitude: r.longitude,
+      photo_url: r.photo_url ?? null,
+      status: r.status ?? 'pending',
+      description: r.description ?? null,
     }));
 
     setMapReports(mapped);
@@ -390,13 +397,23 @@ export default function MapScreen() {
 
               {expandedCard && (
                 <View style={styles.expandedContent}>
-                  <Text style={styles.expandedDescription}>
-                    Este es un reporte detallado registrado en nuestra plataforma. Al dar clic aquí, puedes ver más contexto sobre el incidente marcado en el mapa, visualizar imágenes adjuntas al incidente por la comunidad, y leer los comentarios u observaciones.
-                  </Text>
-                  <View style={styles.expandedMockImage}>
-                    <Ionicons name="image-outline" size={40} color="#9CA3AF" />
-                    <Text style={styles.expandedMockImageText}>Foto adjunta (Demo)</Text>
-                  </View>
+                  {selectedReport.description ? (
+                    <Text style={styles.expandedDescription}>
+                      {selectedReport.description}
+                    </Text>
+                  ) : null}
+                  {selectedReport.photo_url ? (
+                    <Image
+                      source={{ uri: selectedReport.photo_url }}
+                      style={styles.expandedImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.expandedMockImage}>
+                      <Ionicons name="image-outline" size={40} color="#9CA3AF" />
+                      <Text style={styles.expandedMockImageText}>Sin foto adjunta</Text>
+                    </View>
+                  )}
                 </View>
               )}
             </ScaleButton>
@@ -421,16 +438,27 @@ export default function MapScreen() {
                 <Text style={styles.calcText}>Calculando tu ubicación...</Text>
               )}
 
-              <ScaleButton
-                style={[styles.routeButton, showRoute && styles.routeButtonActive]}
-                onPress={() => toggleRoute()}
-                disabled={!location || loadingRoute}
-              >
-                <Ionicons name={showRoute ? "close-circle" : "navigate"} size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.routeButtonText}>
-                  {loadingRoute ? 'Calculando...' : showRoute ? 'Ocultar Ruta' : 'Ruta'}
-                </Text>
-              </ScaleButton>
+              <View style={styles.mapButtonsRow}>
+                <ScaleButton
+                  style={[styles.routeButton, { flex: 1 }, showRoute && styles.routeButtonActive]}
+                  onPress={() => toggleRoute()}
+                  disabled={!location || loadingRoute}
+                >
+                  <Ionicons name={showRoute ? "close-circle" : "navigate"} size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.routeButtonText}>
+                    {loadingRoute ? 'Calculando...' : showRoute ? 'Ocultar Ruta' : 'Ruta'}
+                  </Text>
+                </ScaleButton>
+                {selectedReport.status === 'verified' && (
+                  <ScaleButton
+                    style={styles.attendMapButton}
+                    onPress={() => router.push({ pathname: '/attend-report', params: { reportId: selectedReport.id } })}
+                  >
+                    <Ionicons name="construct" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.routeButtonText}>Atender</Text>
+                  </ScaleButton>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -587,6 +615,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
+  expandedImage: {
+    width: '100%' as any,
+    height: 160,
+    borderRadius: 12,
+  },
   routeCompactInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -631,5 +664,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold'
+  },
+  mapButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  attendMapButton: {
+    backgroundColor: '#1D9E75',
+    flexDirection: 'row',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

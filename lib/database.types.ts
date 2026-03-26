@@ -83,6 +83,8 @@ export interface Report {
   verified_by: string | null;
   verified_at: string | null;
   rejection_reason: string | null;
+  attended_by: string | null;
+  attended_at: string | null;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;
@@ -328,40 +330,248 @@ export interface Notification {
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Partial<Profile> & { id: string; name: string }; Update: Partial<Profile> };
-      associations: { Row: Association; Insert: Partial<Association> & { owner_id: string; name: string }; Update: Partial<Association> };
-      association_members: { Row: AssociationMember; Insert: Partial<AssociationMember> & { association_id: string; user_id: string }; Update: Partial<AssociationMember> };
-      reports: { Row: Report; Insert: Partial<Report> & { user_id: string; title: string; category: ReportCategory; latitude: number; longitude: number }; Update: Partial<Report> };
-      report_likes: { Row: ReportLike; Insert: { report_id: string; user_id: string }; Update: Partial<ReportLike> };
-      report_comments: { Row: ReportComment; Insert: Partial<ReportComment> & { report_id: string; user_id: string; content: string }; Update: Partial<ReportComment> };
-      community_services: { Row: CommunityService; Insert: Partial<CommunityService> & { created_by: string; title: string }; Update: Partial<CommunityService> };
-      joint_service_associations: { Row: { id: string; service_id: string; association_id: string; joined_at: string }; Insert: { service_id: string; association_id: string }; Update: never };
-      service_volunteers: { Row: ServiceVolunteer; Insert: Partial<ServiceVolunteer> & { service_id: string; user_id: string }; Update: Partial<ServiceVolunteer> };
-      feed_posts: { Row: FeedPost; Insert: Partial<FeedPost> & { user_id: string; title: string }; Update: Partial<FeedPost> };
-      feed_post_likes: { Row: FeedPostLike; Insert: { post_id: string; user_id: string }; Update: Partial<FeedPostLike> };
-      feed_post_comments: { Row: FeedPostComment; Insert: Partial<FeedPostComment> & { post_id: string; user_id: string; content: string }; Update: Partial<FeedPostComment> };
-      rewards: { Row: Reward; Insert: Partial<Reward> & { created_by: string; title: string; points_cost: number }; Update: Partial<Reward> };
-      reward_claims: { Row: RewardClaim; Insert: Partial<RewardClaim> & { reward_id: string; user_id: string; qr_code: string; qr_secret_hash: string }; Update: Partial<RewardClaim> };
-      badges: { Row: Badge; Insert: Partial<Badge> & { name: string; description: string; icon_name: string; criteria: Record<string, unknown> }; Update: Partial<Badge> };
-      user_badges: { Row: UserBadge; Insert: Partial<UserBadge> & { user_id: string; badge_id: string }; Update: Partial<UserBadge> };
-      points_history: { Row: PointsHistory; Insert: Partial<PointsHistory> & { user_id: string; points: number; action: string }; Update: Partial<PointsHistory> };
-      leaderboard_monthly: { Row: LeaderboardMonthly; Insert: Partial<LeaderboardMonthly> & { user_id: string; year_month: string }; Update: Partial<LeaderboardMonthly> };
-      marketplace_listings: { Row: MarketplaceListing; Insert: Partial<MarketplaceListing> & { seller_id: string; title: string; material: MaterialType; quantity_kg: number; price_per_kg: number }; Update: Partial<MarketplaceListing> };
-      marketplace_messages: { Row: MarketplaceMessage; Insert: Partial<MarketplaceMessage> & { listing_id: string; sender_id: string; receiver_id: string; content: string }; Update: Partial<MarketplaceMessage> };
-      auctions: { Row: Auction; Insert: Partial<Auction> & { seller_id: string; title: string; material: MaterialType; quantity_kg: number; starting_price: number; starts_at: string; ends_at: string }; Update: Partial<Auction> };
-      auction_bids: { Row: AuctionBid; Insert: Partial<AuctionBid> & { auction_id: string; bidder_id: string; amount: number }; Update: Partial<AuctionBid> };
-      ai_conversations: { Row: AiConversation; Insert: Partial<AiConversation> & { user_id: string }; Update: Partial<AiConversation> };
-      ai_messages: { Row: AiMessage; Insert: Partial<AiMessage> & { conversation_id: string; role: 'user' | 'assistant' | 'system'; content: string }; Update: Partial<AiMessage> };
-      ai_content_drafts: { Row: { id: string; conversation_id: string; user_id: string; draft_type: string; content: Record<string, unknown>; is_accepted: boolean; created_at: string }; Insert: { conversation_id: string; user_id: string; draft_type: string; content: Record<string, unknown> }; Update: Partial<{ is_accepted: boolean }> };
-      notifications: { Row: Notification; Insert: Partial<Notification> & { user_id: string; type: string; title: string }; Update: Partial<Notification> };
+      profiles: {
+        Row: Profile;
+        Insert: Partial<Profile> & { id: string; name: string };
+        Update: Partial<Profile>;
+        Relationships: [];
+      };
+      associations: {
+        Row: Association;
+        Insert: Partial<Association> & { owner_id: string; name: string };
+        Update: Partial<Association>;
+        Relationships: [
+          { foreignKeyName: 'associations_owner_id_fkey'; columns: ['owner_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      association_members: {
+        Row: AssociationMember;
+        Insert: Partial<AssociationMember> & { association_id: string; user_id: string };
+        Update: Partial<AssociationMember>;
+        Relationships: [
+          { foreignKeyName: 'association_members_association_id_fkey'; columns: ['association_id']; isOneToOne: false; referencedRelation: 'associations'; referencedColumns: ['id'] },
+          { foreignKeyName: 'association_members_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      reports: {
+        Row: Report;
+        Insert: Partial<Report> & { user_id: string; title: string; category: ReportCategory; latitude: number; longitude: number };
+        Update: Partial<Report>;
+        Relationships: [
+          { foreignKeyName: 'reports_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'reports_association_id_fkey'; columns: ['association_id']; isOneToOne: false; referencedRelation: 'associations'; referencedColumns: ['id'] },
+          { foreignKeyName: 'reports_verified_by_fkey'; columns: ['verified_by']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      report_likes: {
+        Row: ReportLike;
+        Insert: { report_id: string; user_id: string };
+        Update: Partial<ReportLike>;
+        Relationships: [
+          { foreignKeyName: 'report_likes_report_id_fkey'; columns: ['report_id']; isOneToOne: false; referencedRelation: 'reports'; referencedColumns: ['id'] },
+          { foreignKeyName: 'report_likes_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      report_comments: {
+        Row: ReportComment;
+        Insert: Partial<ReportComment> & { report_id: string; user_id: string; content: string };
+        Update: Partial<ReportComment>;
+        Relationships: [
+          { foreignKeyName: 'report_comments_report_id_fkey'; columns: ['report_id']; isOneToOne: false; referencedRelation: 'reports'; referencedColumns: ['id'] },
+          { foreignKeyName: 'report_comments_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'report_comments_parent_comment_id_fkey'; columns: ['parent_comment_id']; isOneToOne: false; referencedRelation: 'report_comments'; referencedColumns: ['id'] }
+        ];
+      };
+      community_services: {
+        Row: CommunityService;
+        Insert: Partial<CommunityService> & { created_by: string; title: string };
+        Update: Partial<CommunityService>;
+        Relationships: [
+          { foreignKeyName: 'community_services_association_id_fkey'; columns: ['association_id']; isOneToOne: false; referencedRelation: 'associations'; referencedColumns: ['id'] },
+          { foreignKeyName: 'community_services_created_by_fkey'; columns: ['created_by']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'community_services_report_id_fkey'; columns: ['report_id']; isOneToOne: false; referencedRelation: 'reports'; referencedColumns: ['id'] }
+        ];
+      };
+      joint_service_associations: {
+        Row: { id: string; service_id: string; association_id: string; joined_at: string };
+        Insert: { service_id: string; association_id: string };
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'joint_service_associations_service_id_fkey'; columns: ['service_id']; isOneToOne: false; referencedRelation: 'community_services'; referencedColumns: ['id'] },
+          { foreignKeyName: 'joint_service_associations_association_id_fkey'; columns: ['association_id']; isOneToOne: false; referencedRelation: 'associations'; referencedColumns: ['id'] }
+        ];
+      };
+      service_volunteers: {
+        Row: ServiceVolunteer;
+        Insert: Partial<ServiceVolunteer> & { service_id: string; user_id: string };
+        Update: Partial<ServiceVolunteer>;
+        Relationships: [
+          { foreignKeyName: 'service_volunteers_service_id_fkey'; columns: ['service_id']; isOneToOne: false; referencedRelation: 'community_services'; referencedColumns: ['id'] },
+          { foreignKeyName: 'service_volunteers_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      feed_posts: {
+        Row: FeedPost;
+        Insert: Partial<FeedPost> & { user_id: string; title: string };
+        Update: Partial<FeedPost>;
+        Relationships: [
+          { foreignKeyName: 'feed_posts_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'feed_posts_association_id_fkey'; columns: ['association_id']; isOneToOne: false; referencedRelation: 'associations'; referencedColumns: ['id'] },
+          { foreignKeyName: 'feed_posts_report_id_fkey'; columns: ['report_id']; isOneToOne: false; referencedRelation: 'reports'; referencedColumns: ['id'] },
+          { foreignKeyName: 'feed_posts_service_id_fkey'; columns: ['service_id']; isOneToOne: false; referencedRelation: 'community_services'; referencedColumns: ['id'] }
+        ];
+      };
+      feed_post_likes: {
+        Row: FeedPostLike;
+        Insert: { post_id: string; user_id: string };
+        Update: Partial<FeedPostLike>;
+        Relationships: [
+          { foreignKeyName: 'feed_post_likes_post_id_fkey'; columns: ['post_id']; isOneToOne: false; referencedRelation: 'feed_posts'; referencedColumns: ['id'] },
+          { foreignKeyName: 'feed_post_likes_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      feed_post_comments: {
+        Row: FeedPostComment;
+        Insert: Partial<FeedPostComment> & { post_id: string; user_id: string; content: string };
+        Update: Partial<FeedPostComment>;
+        Relationships: [
+          { foreignKeyName: 'feed_post_comments_post_id_fkey'; columns: ['post_id']; isOneToOne: false; referencedRelation: 'feed_posts'; referencedColumns: ['id'] },
+          { foreignKeyName: 'feed_post_comments_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'feed_post_comments_parent_comment_id_fkey'; columns: ['parent_comment_id']; isOneToOne: false; referencedRelation: 'feed_post_comments'; referencedColumns: ['id'] }
+        ];
+      };
+      rewards: {
+        Row: Reward;
+        Insert: Partial<Reward> & { created_by: string; title: string; points_cost: number };
+        Update: Partial<Reward>;
+        Relationships: [
+          { foreignKeyName: 'rewards_association_id_fkey'; columns: ['association_id']; isOneToOne: false; referencedRelation: 'associations'; referencedColumns: ['id'] },
+          { foreignKeyName: 'rewards_created_by_fkey'; columns: ['created_by']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'rewards_report_id_fkey'; columns: ['report_id']; isOneToOne: false; referencedRelation: 'reports'; referencedColumns: ['id'] },
+          { foreignKeyName: 'rewards_service_id_fkey'; columns: ['service_id']; isOneToOne: false; referencedRelation: 'community_services'; referencedColumns: ['id'] }
+        ];
+      };
+      reward_claims: {
+        Row: RewardClaim;
+        Insert: Partial<RewardClaim> & { reward_id: string; user_id: string; qr_code: string; qr_secret_hash: string };
+        Update: Partial<RewardClaim>;
+        Relationships: [
+          { foreignKeyName: 'reward_claims_reward_id_fkey'; columns: ['reward_id']; isOneToOne: false; referencedRelation: 'rewards'; referencedColumns: ['id'] },
+          { foreignKeyName: 'reward_claims_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      badges: {
+        Row: Badge;
+        Insert: Partial<Badge> & { name: string; description: string; icon_name: string; criteria: Record<string, unknown> };
+        Update: Partial<Badge>;
+        Relationships: [];
+      };
+      user_badges: {
+        Row: UserBadge;
+        Insert: Partial<UserBadge> & { user_id: string; badge_id: string };
+        Update: Partial<UserBadge>;
+        Relationships: [
+          { foreignKeyName: 'user_badges_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'user_badges_badge_id_fkey'; columns: ['badge_id']; isOneToOne: false; referencedRelation: 'badges'; referencedColumns: ['id'] }
+        ];
+      };
+      points_history: {
+        Row: PointsHistory;
+        Insert: Partial<PointsHistory> & { user_id: string; points: number; action: string };
+        Update: Partial<PointsHistory>;
+        Relationships: [
+          { foreignKeyName: 'points_history_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      leaderboard_monthly: {
+        Row: LeaderboardMonthly;
+        Insert: Partial<LeaderboardMonthly> & { user_id: string; year_month: string };
+        Update: Partial<LeaderboardMonthly>;
+        Relationships: [
+          { foreignKeyName: 'leaderboard_monthly_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      marketplace_listings: {
+        Row: MarketplaceListing;
+        Insert: Partial<MarketplaceListing> & { seller_id: string; title: string; material: MaterialType; quantity_kg: number; price_per_kg: number };
+        Update: Partial<MarketplaceListing>;
+        Relationships: [
+          { foreignKeyName: 'marketplace_listings_seller_id_fkey'; columns: ['seller_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'marketplace_listings_buyer_id_fkey'; columns: ['buyer_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      marketplace_messages: {
+        Row: MarketplaceMessage;
+        Insert: Partial<MarketplaceMessage> & { listing_id: string; sender_id: string; receiver_id: string; content: string };
+        Update: Partial<MarketplaceMessage>;
+        Relationships: [
+          { foreignKeyName: 'marketplace_messages_listing_id_fkey'; columns: ['listing_id']; isOneToOne: false; referencedRelation: 'marketplace_listings'; referencedColumns: ['id'] },
+          { foreignKeyName: 'marketplace_messages_sender_id_fkey'; columns: ['sender_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'marketplace_messages_receiver_id_fkey'; columns: ['receiver_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      auctions: {
+        Row: Auction;
+        Insert: Partial<Auction> & { seller_id: string; title: string; material: MaterialType; quantity_kg: number; starting_price: number; starts_at: string; ends_at: string };
+        Update: Partial<Auction>;
+        Relationships: [
+          { foreignKeyName: 'auctions_seller_id_fkey'; columns: ['seller_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+          { foreignKeyName: 'auctions_current_bidder_id_fkey'; columns: ['current_bidder_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      auction_bids: {
+        Row: AuctionBid;
+        Insert: Partial<AuctionBid> & { auction_id: string; bidder_id: string; amount: number };
+        Update: Partial<AuctionBid>;
+        Relationships: [
+          { foreignKeyName: 'auction_bids_auction_id_fkey'; columns: ['auction_id']; isOneToOne: false; referencedRelation: 'auctions'; referencedColumns: ['id'] },
+          { foreignKeyName: 'auction_bids_bidder_id_fkey'; columns: ['bidder_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      ai_conversations: {
+        Row: AiConversation;
+        Insert: Partial<AiConversation> & { user_id: string };
+        Update: Partial<AiConversation>;
+        Relationships: [
+          { foreignKeyName: 'ai_conversations_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      ai_messages: {
+        Row: AiMessage;
+        Insert: Partial<AiMessage> & { conversation_id: string; role: 'user' | 'assistant' | 'system'; content: string };
+        Update: Partial<AiMessage>;
+        Relationships: [
+          { foreignKeyName: 'ai_messages_conversation_id_fkey'; columns: ['conversation_id']; isOneToOne: false; referencedRelation: 'ai_conversations'; referencedColumns: ['id'] }
+        ];
+      };
+      ai_content_drafts: {
+        Row: { id: string; conversation_id: string; user_id: string; draft_type: string; content: Record<string, unknown>; is_accepted: boolean; created_at: string };
+        Insert: { conversation_id: string; user_id: string; draft_type: string; content: Record<string, unknown> };
+        Update: Partial<{ is_accepted: boolean }>;
+        Relationships: [
+          { foreignKeyName: 'ai_content_drafts_conversation_id_fkey'; columns: ['conversation_id']; isOneToOne: false; referencedRelation: 'ai_conversations'; referencedColumns: ['id'] },
+          { foreignKeyName: 'ai_content_drafts_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+      notifications: {
+        Row: Notification;
+        Insert: Partial<Notification> & { user_id: string; type: string; title: string };
+        Update: Partial<Notification>;
+        Relationships: [
+          { foreignKeyName: 'notifications_user_id_fkey'; columns: ['user_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] }
+        ];
+      };
+    };
+    Views: {
+      [_ in never]: never;
     };
     Functions: {
-      add_eco_points: { Args: { p_user_id: string; p_points: number; p_action: string; p_ref_type?: string; p_ref_id?: string }; Returns: void };
-      update_user_streak: { Args: { p_user_id: string }; Returns: void };
-      check_and_award_badges: { Args: { p_user_id: string }; Returns: void };
-      verify_report: { Args: { p_report_id: string; p_verifier_id: string }; Returns: void };
-      reject_report: { Args: { p_report_id: string; p_verifier_id: string; p_reason: string }; Returns: void };
-      place_bid: { Args: { p_auction_id: string; p_bidder_id: string; p_amount: number }; Returns: void };
+      add_eco_points: { Args: { p_user_id: string; p_points: number; p_action: string; p_ref_type?: string; p_ref_id?: string }; Returns: undefined };
+      update_user_streak: { Args: { p_user_id: string }; Returns: undefined };
+      check_and_award_badges: { Args: { p_user_id: string }; Returns: undefined };
+      verify_report: { Args: { p_report_id: string; p_verifier_id: string }; Returns: undefined };
+      reject_report: { Args: { p_report_id: string; p_verifier_id: string; p_reason: string }; Returns: undefined };
+      place_bid: { Args: { p_auction_id: string; p_bidder_id: string; p_amount: number }; Returns: undefined };
       claim_reward: { Args: { p_user_id: string; p_reward_id: string }; Returns: string };
       redeem_qr_code: { Args: { p_qr_code: string }; Returns: Record<string, unknown> };
       is_admin: { Args: { p_user_id: string }; Returns: boolean };
@@ -380,6 +590,9 @@ export interface Database {
       listing_status: ListingStatus;
       material_type: MaterialType;
       auction_status: AuctionStatus;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }

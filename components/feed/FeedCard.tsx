@@ -280,6 +280,18 @@ export default function FeedCard({ report, onOpenComments, onPress }: FeedCardPr
             Me uno
           </Text>
         </Pressable>
+
+        {report.status === 'verified' && (
+          <Pressable
+            style={[styles.actionButton, styles.attendButton]}
+            onPress={() => router.push({ pathname: '/attend-report', params: { reportId: report.id } })}
+          >
+            <Ionicons name="construct-outline" size={18} color={COLORS.white} />
+            <Text style={[styles.actionText, { color: COLORS.white, fontWeight: '600' }]}>
+              Atender
+            </Text>
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );
@@ -460,5 +472,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '12',
     borderWidth: 1,
     borderColor: COLORS.primary + '30',
+  },
+  attendButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    paddingHorizontal: 12,
   },
 });
