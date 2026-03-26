@@ -23,7 +23,7 @@ import TypingIndicator from '../../components/chat/TypingIndicator';
 import { decode } from 'base64-arraybuffer';
 import { ChatMessage, useChat } from '../../hooks/useChat';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -65,6 +65,7 @@ const SUGGESTIONS = [
 
 export default function ChatTabScreen() {
   const insets = useSafeAreaInsets();
+  const C = useColors();
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -331,6 +332,8 @@ export default function ChatTabScreen() {
     <ChatBubble role={item.role} content={item.content} imageUrl={item.image_url} />
   );
 
+  const styles = makeStyles(C);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -349,7 +352,7 @@ export default function ChatTabScreen() {
           </View>
         </View>
         <Pressable onPress={resetChat} style={styles.resetBtn}>
-          <Ionicons name="refresh" size={20} color={Colors.textSecondary} />
+          <Ionicons name="refresh" size={20} color={C.textSecondary} />
         </Pressable>
       </View>
 
@@ -364,7 +367,7 @@ export default function ChatTabScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="chatbubbles-outline" size={48} color={Colors.primary} />
+              <Ionicons name="chatbubbles-outline" size={48} color={C.primary} />
             </View>
             <Text style={styles.emptyTitle}>Hola, soy tu asistente</Text>
             <Text style={styles.emptyText}>
@@ -384,7 +387,7 @@ export default function ChatTabScreen() {
                         sendMessage(item);
                       }}
                     >
-                      <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+                      <Ionicons name="arrow-forward" size={14} color={C.primary} />
                       <Text style={styles.suggestionText}>{item}</Text>
                     </Pressable>
                   ))}
@@ -424,13 +427,13 @@ export default function ChatTabScreen() {
               style={[styles.iconBtn, isRecording && styles.recordingBtn]}
               disabled={isSttLoading}
             >
-              <Ionicons name="mic" size={20} color={isRecording ? '#FFF' : Colors.primary} />
+              <Ionicons name="mic" size={20} color={isRecording ? '#FFF' : C.primary} />
             </Pressable>
           </Animated.View>
           <TextInput
             style={styles.input}
             placeholder={isRecording ? 'Escuchando...' : isSttLoading ? 'Procesando...' : 'Escribe un mensaje...'}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -459,7 +462,7 @@ export default function ChatTabScreen() {
           <View style={styles.mapHeader}>
             <Text style={styles.mapTitle}>Selecciona la ubicación del reporte</Text>
             <Pressable onPress={() => { setMapVisible(false); setPendingDraftId(null); clearMapImage(); }}>
-              <Ionicons name="close" size={24} color={Colors.text} />
+              <Ionicons name="close" size={24} color={C.text} />
             </Pressable>
           </View>
           <Text style={styles.mapHint}>Toca el mapa para colocar el pin donde está el problema</Text>
@@ -475,7 +478,7 @@ export default function ChatTabScreen() {
           </View>
           {pinCoord && (
             <View style={styles.mapCoordInfo}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+              <Ionicons name="checkmark-circle" size={16} color={C.primary} />
               <Text style={styles.mapCoordText}>Ubicación seleccionada</Text>
             </View>
           )}
@@ -492,17 +495,17 @@ export default function ChatTabScreen() {
                   </Text>
                 </View>
                 <Pressable onPress={clearMapImage} style={styles.mapImageClose}>
-                  <Ionicons name="close-circle" size={22} color={Colors.textSecondary} />
+                  <Ionicons name="close-circle" size={22} color={C.textSecondary} />
                 </Pressable>
               </View>
             ) : (
               <View style={styles.mapImageButtons}>
                 <Pressable onPress={pickMapImage} style={styles.mapImageBtn}>
-                  <Ionicons name="images-outline" size={20} color={Colors.primary} />
+                <Ionicons name="images-outline" size={20} color={C.primary} />
                   <Text style={styles.mapImageBtnText}>Galería</Text>
                 </Pressable>
                 <Pressable onPress={takeMapPhoto} style={styles.mapImageBtn}>
-                  <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+                  <Ionicons name="camera-outline" size={20} color={C.primary} />
                   <Text style={styles.mapImageBtnText}>Cámara</Text>
                 </Pressable>
               </View>
@@ -523,10 +526,10 @@ export default function ChatTabScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
   },
   // Header
   header: {
@@ -535,9 +538,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -548,18 +551,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
   },
   headerSub: {
     fontSize: 12,
-    color: Colors.primary,
+    color: C.primary,
     fontWeight: '500',
   },
   resetBtn: {
@@ -582,7 +585,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -590,12 +593,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: 20,
@@ -610,12 +613,12 @@ const styles = StyleSheet.create({
   suggestionSectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: C.textMuted,
     marginBottom: 8,
     paddingHorizontal: 16,
   },
   suggestionPill: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     marginHorizontal: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -627,7 +630,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 13,
-    color: Colors.primary,
+    color: C.primary,
     fontWeight: '500',
     flex: 1,
   },
@@ -636,9 +639,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 12,
     paddingBottom: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: C.border,
   },
   imagePreview: {
     marginBottom: 10,
@@ -671,7 +674,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -681,20 +684,20 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.borderLight,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     minHeight: 44,
     maxHeight: 100,
-    color: Colors.text,
+    color: C.text,
   },
   sendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -720,7 +723,7 @@ const styles = StyleSheet.create({
   // Map modal
   mapModal: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.background,
     paddingHorizontal: 16,
   },
   mapHeader: {
@@ -732,11 +735,11 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
   },
   mapHint: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     marginBottom: 12,
   },
   mapContainer: {
@@ -754,7 +757,7 @@ const styles = StyleSheet.create({
   },
   mapCoordText: {
     fontSize: 13,
-    color: Colors.primary,
+    color: C.primary,
     fontWeight: '600',
   },
   // Map image section
@@ -764,7 +767,7 @@ const styles = StyleSheet.create({
   mapImageLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 8,
   },
   mapImageButtons: {
@@ -775,22 +778,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: C.primary + '30',
   },
   mapImageBtnText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: C.primary,
     fontWeight: '600',
   },
   mapImagePreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.borderLight,
     borderRadius: 10,
     padding: 8,
   },
@@ -798,7 +801,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: C.border,
   },
   mapImageInfo: {
     flex: 1,
@@ -806,7 +809,7 @@ const styles = StyleSheet.create({
   },
   mapImageText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   mapImageClose: {
     padding: 4,
@@ -816,7 +819,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: 14,
     paddingVertical: 16,
     marginBottom: 30,

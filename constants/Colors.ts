@@ -1,5 +1,6 @@
 // Paleta de colores — Social Clean
-export const Colors = {
+
+export const LightColors = {
   primary: '#1D9E75',       // Verde teal — sostenibilidad
   primaryLight: '#E1F5EE',
   accent: '#D85A30',        // Coral — CTAs y botón reportar
@@ -50,3 +51,56 @@ export const Colors = {
   xpBarBg: '#E5E7EB',
   badgeLocked: '#D1D5DB',
 };
+
+export const DarkColors: typeof LightColors = {
+  primary: '#22C58B',
+  primaryLight: '#1A3D32',
+  accent: '#E8764A',
+  accentLight: '#3D2218',
+
+  category: {
+    trash: '#F06565',
+    pothole: '#FBBF24',
+    drain: '#60A5FA',
+    wildlife: '#D4952A',
+    electronic: '#A78BFA',
+    organic: '#34D399',
+    other: '#9CA3AF',
+  },
+
+  status: {
+    pending: '#3D2E10',
+    pendingText: '#FCD34D',
+    verified: '#0F3D2E',
+    verifiedText: '#6EE7B7',
+    inProgress: '#1A2F44',
+    inProgressText: '#93C5FD',
+    resolved: '#0F3D2E',
+    resolvedText: '#6EE7B7',
+    rejected: '#3B1515',
+    rejectedText: '#FCA5A5',
+  },
+
+  background: '#0F1117',
+  surface: '#1A1D27',
+  text: '#E8EAF0',
+  textSecondary: '#9CA3AF',
+  textMuted: '#6B7280',
+  border: '#2D3342',
+  borderLight: '#232736',
+  error: '#F87171',
+  success: '#34D399',
+  warning: '#FBBF24',
+
+  gold: '#FFD700',
+  silver: '#C0C0C0',
+  bronze: '#CD7F32',
+  xpBar: '#22C58B',
+  xpBarBg: '#2D3342',
+  badgeLocked: '#4B5563',
+};
+
+// Default export for backward compat (light theme)
+export const Colors = LightColors;
+
+export type ColorPalette = typeof LightColors;

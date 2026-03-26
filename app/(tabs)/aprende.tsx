@@ -6,9 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LEARN_DATA, type LearnItem } from '../../constants/LearnData';
 import LearnVideoCard from '../../components/learn/LearnVideoCard';
 import LearnArticleCard from '../../components/learn/LearnArticleCard';
+import { useColors } from '../../contexts/ThemeContext';
 
 export default function AprendeScreen() {
   const insets = useSafeAreaInsets();
+  const C = useColors();
+  const styles = makeStyles(C);
 
   const renderItem = ({ item }: { item: LearnItem }) => {
     if (item.type === 'video') {
@@ -25,7 +28,7 @@ export default function AprendeScreen() {
         renderItem={renderItem}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: insets.bottom + 100 }, // space for the floating tab bar
+          { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -38,7 +41,7 @@ export default function AprendeScreen() {
                 </View>
               </View>
               <View style={styles.iconCircle}>
-                <Ionicons name="leaf" size={24} color="#1D9E75" />
+                <Ionicons name="leaf" size={24} color={C.primary} />
               </View>
             </View>
             <Text style={styles.subtitle}>
@@ -51,26 +54,26 @@ export default function AprendeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F7F6', // Lighter, cooler background
+    backgroundColor: C.background,
   },
   listContent: {
     padding: 20,
   },
   header: {
     marginBottom: 28,
-    backgroundColor: '#ffffff',
+    backgroundColor: C.surface,
     padding: 24,
     borderRadius: 24,
-    shadowColor: '#1D9E75',
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(29, 158, 117, 0.1)',
+    borderColor: C.primary + '1A',
   },
   headerTop: {
     flexDirection: 'row',
@@ -85,18 +88,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#111827',
+    color: C.text,
     letterSpacing: -0.5,
   },
   badge: {
-    backgroundColor: '#E1F5EE',
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     marginLeft: 12,
   },
   badgeText: {
-    color: '#1D9E75',
+    color: C.primary,
     fontSize: 10,
     fontWeight: 'bold',
   },
@@ -104,13 +107,13 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E1F5EE',
+    backgroundColor: C.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#4B5563',
+    color: C.textSecondary,
     lineHeight: 24,
     fontWeight: '500',
   },

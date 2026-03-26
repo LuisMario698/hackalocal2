@@ -3,13 +3,15 @@ import React from 'react';
 import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import type { LearnItem } from '../../constants/LearnData';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 
 interface Props {
   item: LearnItem;
 }
 
 export default function LearnArticleCard({ item }: Props) {
+  const C = useColors();
+  const styles = makeStyles(C);
   const handlePress = async () => {
     try {
       await Linking.openURL(item.url);
@@ -22,7 +24,7 @@ export default function LearnArticleCard({ item }: Props) {
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.8}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Ionicons name="document-text" size={24} color={Colors.primary} />
+          <Ionicons name="document-text" size={24} color={C.primary} />
         </View>
         <View style={styles.tagContainer}>
           <Text style={styles.tagText}>Documento / Paper</Text>
@@ -34,7 +36,7 @@ export default function LearnArticleCard({ item }: Props) {
           {item.title}
         </Text>
         <Text style={styles.source}>
-          <Ionicons name="business-outline" size={14} color="#6b7280" /> {item.source}
+          <Ionicons name="business-outline" size={14} color={C.textSecondary} /> {item.source}
         </Text>
         
         {item.summary && (
@@ -46,15 +48,15 @@ export default function LearnArticleCard({ item }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.readText}>Leer documento</Text>
-        <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+        <Ionicons name="arrow-forward" size={16} color={C.primary} />
       </View>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: C.surface,
     borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
@@ -64,7 +66,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    borderColor: C.border,
     padding: 16,
   },
   header: {
@@ -76,19 +78,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(29, 158, 117, 0.1)',
+    backgroundColor: C.primary + '1A',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   tagContainer: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: C.borderLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   tagText: {
-    color: '#4b5563',
+    color: C.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -99,19 +101,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
+    color: C.text,
     marginBottom: 8,
     lineHeight: 22,
   },
   source: {
     fontSize: 14,
-    color: '#6b7280',
+    color: C.textSecondary,
     fontWeight: '500',
     marginBottom: 8,
   },
   summary: {
     fontSize: 14,
-    color: '#4b5563',
+    color: C.textSecondary,
     lineHeight: 20,
   },
   footer: {
@@ -119,11 +121,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: C.borderLight,
     paddingTop: 12,
   },
   readText: {
-    color: Colors.primary,
+    color: C.primary,
     fontSize: 14,
     fontWeight: '600',
     marginRight: 6,

@@ -10,7 +10,7 @@ import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 import { REPORTS, MockReport } from '../constants/MockData';
 import { REPORT_CATEGORIES } from '../constants/Gamification';
 
@@ -22,6 +22,8 @@ type Verdict = 'verified' | 'rejected';
 export default function VerifierScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const C = useColors();
+  const s = makeS(C);
 
   // Solo reportes pendientes
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>({});
@@ -72,9 +74,9 @@ export default function VerifierScreen() {
     REPORT_CATEGORIES.find((c) => c.id === cat);
 
   const getSeverityLabel = (sev: number) => {
-    if (sev >= 4) return { label: 'Alta', color: Colors.error };
+    if (sev >= 4) return { label: 'Alta', color: C.error };
     if (sev >= 3) return { label: 'Media', color: '#F59E0B' };
-    return { label: 'Baja', color: Colors.primary };
+    return { label: 'Baja', color: C.primary };
   };
 
   const unreviewedCount = pendingReports.filter((r) => !verdicts[r.id]).length;
@@ -91,7 +93,7 @@ export default function VerifierScreen() {
         </View>
         <Pressable style={s.skipBtn} onPress={() => router.replace('/(tabs)' as any)}>
           <Text style={s.skipBtnText}>Ver app</Text>
-          <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+          <Ionicons name="arrow-forward" size={16} color={C.primary} />
         </Pressable>
       </View>
 
@@ -102,13 +104,13 @@ export default function VerifierScreen() {
           <Text style={s.statText}>{unreviewedCount} pendientes</Text>
         </View>
         <View style={s.statChip}>
-          <Ionicons name="checkmark-circle-outline" size={14} color={Colors.primary} />
+          <Ionicons name="checkmark-circle-outline" size={14} color={C.primary} />
           <Text style={s.statText}>
             {Object.values(verdicts).filter((v) => v === 'verified').length} aprobados
           </Text>
         </View>
         <View style={s.statChip}>
-          <Ionicons name="close-circle-outline" size={14} color={Colors.error} />
+          <Ionicons name="close-circle-outline" size={14} color={C.error} />
           <Text style={s.statText}>
             {Object.values(verdicts).filter((v) => v === 'rejected').length} rechazados
           </Text>
@@ -119,7 +121,7 @@ export default function VerifierScreen() {
       <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
         {pendingReports.length === 0 && (
           <View style={s.empty}>
-            <Ionicons name="checkmark-done-outline" size={48} color={Colors.textMuted} />
+            <Ionicons name="checkmark-done-outline" size={48} color={C.textMuted} />
             <Text style={s.emptyText}>No hay reportes pendientes</Text>
           </View>
         )}
@@ -163,8 +165,8 @@ export default function VerifierScreen() {
 
               {/* Top row: category + severity */}
               <View style={s.cardTop}>
-                <View style={[s.catPill, { backgroundColor: (cat?.color ?? Colors.textMuted) + '18' }]}>
-                  <Ionicons name={(cat?.icon ?? 'help-outline') as any} size={14} color={cat?.color ?? Colors.textMuted} />
+                <View style={[s.catPill, { backgroundColor: (cat?.color ?? C.textMuted) + '18' }]}>
+                  <Ionicons name={(cat?.icon ?? 'help-outline') as any} size={14} color={cat?.color ?? C.textMuted} />
                   <Text style={[s.catPillText, { color: cat?.color }]}>{cat?.name ?? report.category}</Text>
                 </View>
                 <View style={[s.sevPill, { backgroundColor: sev.color + '18' }]}>
@@ -179,22 +181,22 @@ export default function VerifierScreen() {
               {/* Meta row */}
               <View style={s.metaRow}>
                 <View style={s.metaItem}>
-                  <Ionicons name="person-outline" size={12} color={Colors.textMuted} />
+                  <Ionicons name="person-outline" size={12} color={C.textMuted} />
                   <Text style={s.metaText}>{report.userName}</Text>
                 </View>
                 <View style={s.metaItem}>
-                  <Ionicons name="location-outline" size={12} color={Colors.textMuted} />
+                  <Ionicons name="location-outline" size={12} color={C.textMuted} />
                   <Text style={s.metaText} numberOfLines={1}>{report.address}</Text>
                 </View>
                 <View style={s.metaItem}>
-                  <Ionicons name="calendar-outline" size={12} color={Colors.textMuted} />
+                  <Ionicons name="calendar-outline" size={12} color={C.textMuted} />
                   <Text style={s.metaText}>{report.createdAt}</Text>
                 </View>
               </View>
 
               {/* Likes */}
               <View style={s.metaItem}>
-                <Ionicons name="heart-outline" size={12} color={Colors.textMuted} />
+                <Ionicons name="heart-outline" size={12} color={C.textMuted} />
                 <Text style={s.metaText}>{report.likesCount} apoyo{report.likesCount !== 1 ? 's' : ''}</Text>
               </View>
 
@@ -206,7 +208,7 @@ export default function VerifierScreen() {
                     onPress={() => handleReject(report)}
                     disabled={own}
                   >
-                    <Ionicons name="close" size={18} color={own ? Colors.textMuted : Colors.error} />
+                    <Ionicons name="close" size={18} color={own ? C.textMuted : C.error} />
                     <Text style={[s.rejectBtnText, own && s.actionTextDisabled]}>Rechazar</Text>
                   </Pressable>
                   <Pressable
@@ -214,7 +216,7 @@ export default function VerifierScreen() {
                     onPress={() => handleVerify(report)}
                     disabled={own}
                   >
-                    <Ionicons name="checkmark" size={18} color={own ? Colors.textMuted : '#fff'} />
+                    <Ionicons name="checkmark" size={18} color={own ? C.textMuted : '#fff'} />
                     <Text style={[s.approveBtnText, own && s.actionTextDisabled]}>Aprobar</Text>
                   </Pressable>
                 </View>
@@ -229,8 +231,8 @@ export default function VerifierScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+const makeS = (C: any) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.background },
 
   // Header
   header: {
@@ -240,18 +242,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  headerSub: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: C.text },
+  headerSub: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
   skipBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  skipBtnText: { fontSize: 13, fontWeight: '600', color: Colors.primary },
+  skipBtnText: { fontSize: 13, fontWeight: '600', color: C.primary },
 
   // Stats
   statsRow: {
@@ -264,21 +266,21 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
-  statText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
+  statText: { fontSize: 11, fontWeight: '600', color: C.textSecondary },
 
   // List
   list: { paddingHorizontal: 20 },
   empty: { alignItems: 'center', marginTop: 60, gap: 12 },
-  emptyText: { fontSize: 15, color: Colors.textMuted },
+  emptyText: { fontSize: 15, color: C.textMuted },
 
   // Card
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -291,11 +293,11 @@ const s = StyleSheet.create({
     borderLeftColor: '#F59E0B',
   },
   cardVerified: {
-    borderLeftColor: Colors.primary,
+    borderLeftColor: C.primary,
     opacity: 0.7,
   },
   cardRejected: {
-    borderLeftColor: Colors.error,
+    borderLeftColor: C.error,
     opacity: 0.7,
   },
 
@@ -310,8 +312,8 @@ const s = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
-  verdictApproved: { backgroundColor: Colors.primary },
-  verdictDenied: { backgroundColor: Colors.error },
+  verdictApproved: { backgroundColor: C.primary },
+  verdictDenied: { backgroundColor: C.error },
   verdictText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
   // Own report badge
@@ -353,8 +355,8 @@ const s = StyleSheet.create({
   sevPillText: { fontSize: 11, fontWeight: '600' },
 
   // Card content
-  cardTitle: { fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 4 },
-  cardDesc: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 10 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4 },
+  cardDesc: { fontSize: 13, color: C.textSecondary, lineHeight: 18, marginBottom: 10 },
 
   // Meta
   metaRow: {
@@ -368,7 +370,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  metaText: { fontSize: 11, color: Colors.textMuted },
+  metaText: { fontSize: 11, color: C.textMuted },
 
   // Actions
   actions: {
@@ -377,7 +379,7 @@ const s = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: C.borderLight,
   },
   actionBtn: {
     flex: 1,
@@ -392,14 +394,14 @@ const s = StyleSheet.create({
     opacity: 0.35,
   },
   actionTextDisabled: {
-    color: Colors.textMuted,
+    color: C.textMuted,
   },
   rejectBtn: {
     backgroundColor: '#FEF2F2',
   },
-  rejectBtnText: { fontSize: 13, fontWeight: '700', color: Colors.error },
+  rejectBtnText: { fontSize: 13, fontWeight: '700', color: C.error },
   approveBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   approveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });

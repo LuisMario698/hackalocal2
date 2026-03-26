@@ -3,13 +3,15 @@ import React from 'react';
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import type { LearnItem } from '../../constants/LearnData';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 
 interface Props {
   item: LearnItem;
 }
 
 export default function LearnVideoCard({ item }: Props) {
+  const C = useColors();
+  const styles = makeStyles(C);
   const handlePress = async () => {
     try {
       await Linking.openURL(item.url);
@@ -47,16 +49,16 @@ export default function LearnVideoCard({ item }: Props) {
           {item.title}
         </Text>
         <Text style={styles.source}>
-          <Ionicons name="business-outline" size={14} color="#6b7280" /> {item.source}
+        <Ionicons name="business-outline" size={14} color={C.textSecondary} /> {item.source}
         </Text>
       </View>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: C.surface,
     borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
@@ -66,12 +68,12 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    borderColor: C.border,
   },
   thumbnailContainer: {
     height: 180,
     width: '100%',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: C.borderLight,
     position: 'relative',
   },
   thumbnail: {
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
   placeholderThumbnail: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e5e7eb',
+    backgroundColor: C.border,
   },
   playButtonContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingLeft: 4, // center the play icon visually
+    paddingLeft: 4,
   },
   durationBadge: {
     position: 'absolute',
@@ -117,14 +119,14 @@ const styles = StyleSheet.create({
   },
   tagContainer: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(29, 158, 117, 0.1)',
+    backgroundColor: C.primary + '1A',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     marginBottom: 8,
   },
   tagText: {
-    color: Colors.primary, // primary color, e.g. #1D9E75
+    color: C.primary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -132,13 +134,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
+    color: C.text,
     marginBottom: 8,
     lineHeight: 22,
   },
   source: {
     fontSize: 14,
-    color: '#6b7280',
+    color: C.textSecondary,
     fontWeight: '500',
   },
 });

@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 import ReportMapPicker from '../components/ReportMapPicker';
 import { useUserLocation } from '../hooks/useUserLocation';
 
@@ -82,9 +83,9 @@ const SIDEBAR_W = 240;
 
 // Nav order: Dashboard first
 type Section = 'dashboard'|'registrar'|'ciudadanos'|'reportes'|'acciones';
-const NAV: { id:Section; label:string; icon:string; color:string }[] = [
+const getNAV = (C: any): { id:Section; label:string; icon:string; color:string }[] => [
   { id:'dashboard', label:'Dashboard',          icon:'bar-chart',       color:'#0EA5A5' },
-  { id:'registrar',  label:'Registrar',          icon:'add-circle',      color:Colors.primary },
+  { id:'registrar',  label:'Registrar',          icon:'add-circle',      color:C.primary },
   { id:'ciudadanos', label:'Ciudadanos',          icon:'people',          color:'#3B82F6' },
   { id:'reportes',   label:'Reportes',            icon:'alert-circle',    color:Colors.accent },
   { id:'acciones',   label:'Acciones de Ayuda',  icon:'hand-right',      color:'#8B5CF6' },
@@ -99,17 +100,19 @@ function Pill({ label, color, bg }: { label:string; color:string; bg:string }) {
   );
 }
 function EvidencePill({ has }:{ has:boolean }) {
-  return <Pill label={has?'✓ Con evidencia':'✗ Sin evidencia'} color={has?Colors.primary:Colors.textMuted} bg={has?Colors.primaryLight:Colors.borderLight} />;
+  const C = useColors();
+  return <Pill label={has?'✓ Con evidencia':'✗ Sin evidencia'} color={has?C.primary:C.textMuted} bg={has?C.primaryLight:C.borderLight} />;
 }
 function RegPill({ by }:{ by:'self'|'institution' }) {
   return <Pill label={by==='institution'?'🏛 Institución':'📱 Móvil'} color={by==='institution'?'#7C3AED':'#1D4ED8'} bg={by==='institution'?'#EDE9FE':'#DBEAFE'} />;
 }
 
 function EvidencePillLg({ has }:{ has:boolean }) {
+  const C = useColors();
   return (
-    <View style={[mdl.pillLg, { backgroundColor: has ? Colors.primaryLight : Colors.borderLight }]}>
-      <Ionicons name={has ? 'checkmark-circle' : 'close-circle'} size={16} color={has ? Colors.primary : Colors.textMuted} />
-      <Text style={[mdl.pillLgText, { color: has ? Colors.primary : Colors.textMuted }]}>
+    <View style={[mdl.pillLg, { backgroundColor: has ? C.primaryLight : C.borderLight }]}>
+      <Ionicons name={has ? 'checkmark-circle' : 'close-circle'} size={16} color={has ? C.primary : C.textMuted} />
+      <Text style={[mdl.pillLgText, { color: has ? C.primary : C.textMuted }]}>
         {has ? 'Con evidencia' : 'Sin evidencia'}
       </Text>
     </View>
@@ -167,11 +170,12 @@ function FieldLabel({ children }: { children:string }) {
 }
 function StyledInput({ value, onChangeText, placeholder, multiline, h }: { value:string; onChangeText:(t:string)=>void; placeholder:string; multiline?:boolean; h?:number }) {
   const [focused, setFocused] = useState(false);
+  const C = useColors();
   return (
     <TextInput
       style={[fi.input, multiline && { height: h||100, textAlignVertical:'top', paddingTop:14 }, focused && fi.inputFocused]}
       value={value} onChangeText={onChangeText} placeholder={placeholder}
-      placeholderTextColor={Colors.textMuted} multiline={multiline}
+      placeholderTextColor={C.textMuted} multiline={multiline}
       onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
     />
   );
@@ -332,19 +336,20 @@ const upz = StyleSheet.create({
 
 // ─── Report selector ──────────────────────────────────────────
 function ReportSelector({ reports, value, onChange }: { reports:CitizenReport[]; value:string; onChange:(id:string)=>void }) {
+  const C = useColors();
   return (
     <View style={{ gap:10, marginTop:4 }}>
       {reports.map(r => {
         const sel = value===r.id;
         const color = CAT_COLORS[r.category]||Colors.category.other;
         return (
-          <TouchableOpacity key={r.id} style={[repsel.item, sel && { borderColor:Colors.primary, backgroundColor:Colors.primaryLight }]} onPress={()=>onChange(r.id)}>
+          <TouchableOpacity key={r.id} style={[repsel.item, sel && { borderColor:C.primary, backgroundColor:C.primaryLight }]} onPress={()=>onChange(r.id)}>
             <View style={[repsel.dot, { backgroundColor:color }]} />
             <View style={{ flex:1 }}>
-              <Text style={[repsel.title, sel && { color:Colors.primary }]} numberOfLines={1}>{r.title}</Text>
+              <Text style={[repsel.title, sel && { color:C.primary }]} numberOfLines={1}>{r.title}</Text>
               <Text style={repsel.sub}>{r.category} · {r.date} · {r.citizenName}</Text>
             </View>
-            {sel && <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />}
+            {sel && <Ionicons name="checkmark-circle" size={24} color={C.primary} />}
           </TouchableOpacity>
         );
       })}
@@ -365,6 +370,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
   type: RegType; citizens:Citizen[]; reports:CitizenReport[];
   onSave:(d:any)=>void; onDone:()=>void;
 }) {
+  const C = useColors();
   const [cId, setCId]     = useState('');
   const [title, setTitle] = useState('');
   const [desc, setDesc]   = useState('');
@@ -407,15 +413,15 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
   if (saved) {
     return (
       <View style={irf.successBox}>
-        <View style={irf.successIcon}><Ionicons name="checkmark-circle" size={56} color={Colors.primary} /></View>
+        <View style={irf.successIcon}><Ionicons name="checkmark-circle" size={56} color={C.primary} /></View>
         <Text style={irf.successTitle}>¡Registro guardado!</Text>
         <Text style={irf.successSub}>El {isReport?'reporte':'acción de ayuda'} fue registrado exitosamente a nombre de {citizens.find(c=>c.id===cId)?.name}.</Text>
         <View style={{ flexDirection:'row', gap:12, marginTop:24 }}>
           <TouchableOpacity style={irf.successBtn} onPress={()=>{ setCId('');setTitle('');setDesc('');setCat('');setRepId('');setHasEv(false);setSaved(false); }}>
-            <Ionicons name="add" size={18} color={Colors.primary} />
-            <Text style={{ fontSize:15, fontWeight:'700', color:Colors.primary }}>Registrar otro</Text>
+            <Ionicons name="add" size={18} color={C.primary} />
+            <Text style={{ fontSize:15, fontWeight:'700', color:C.primary }}>Registrar otro</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[irf.successBtn, { backgroundColor:Colors.primary, borderColor:Colors.primary }]} onPress={onDone}>
+          <TouchableOpacity style={[irf.successBtn, { backgroundColor:C.primary, borderColor:C.primary }]} onPress={onDone}>
             <Text style={{ fontSize:15, fontWeight:'700', color:'#fff' }}>Volver al inicio</Text>
           </TouchableOpacity>
         </View>
@@ -435,14 +441,14 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
           <Text style={irf.formHeaderSub}>{isReport?'Ciudadano reporta un problema ambiental con evidencia':'Ciudadano atendió y solucionó un reporte existente'}</Text>
         </View>
         <TouchableOpacity style={irf.closeBtn} onPress={onDone}>
-          <Ionicons name="close" size={20} color={Colors.textSecondary} />
+          <Ionicons name="close" size={20} color={C.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <View style={irf.form}>
         {/* Step 1 - Ciudadano */}
         <View style={irf.step}>
-          <View style={[irf.stepNum, { backgroundColor:cId?Colors.primary:Colors.borderLight }]}>
+          <View style={[irf.stepNum, { backgroundColor:cId?C.primary:C.borderLight }]}>
             {cId ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>1</Text>}
           </View>
           <View style={{ flex:1 }}>
@@ -455,7 +461,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
           <>
             {/* Step 2 - Título */}
             <View style={irf.step}>
-              <View style={[irf.stepNum, { backgroundColor:title?Colors.primary:Colors.borderLight }]}>
+              <View style={[irf.stepNum, { backgroundColor:title?C.primary:C.borderLight }]}>
                 {title ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>2</Text>}
               </View>
               <View style={{ flex:1 }}>
@@ -466,7 +472,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
 
             {/* Step 3 - Categoría */}
             <View style={irf.step}>
-              <View style={[irf.stepNum, { backgroundColor:cat?Colors.primary:Colors.borderLight }]}>
+              <View style={[irf.stepNum, { backgroundColor:cat?C.primary:C.borderLight }]}>
                 {cat ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>3</Text>}
               </View>
               <View style={{ flex:1 }}>
@@ -477,7 +483,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
 
             {/* Step 4 - Descripción */}
             <View style={irf.step}>
-              <View style={[irf.stepNum, { backgroundColor:desc?Colors.primary:Colors.borderLight }]}>
+              <View style={[irf.stepNum, { backgroundColor:desc?C.primary:C.borderLight }]}>
                 {desc ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>4</Text>}
               </View>
               <View style={{ flex:1 }}>
@@ -492,7 +498,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
           <>
             {/* Step 2 - Reporte */}
             <View style={irf.step}>
-              <View style={[irf.stepNum, { backgroundColor:repId?Colors.primary:Colors.borderLight }]}>
+              <View style={[irf.stepNum, { backgroundColor:repId?C.primary:C.borderLight }]}>
                 {repId ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>2</Text>}
               </View>
               <View style={{ flex:1 }}>
@@ -503,7 +509,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
 
             {/* Step 3 - Descripción */}
             <View style={irf.step}>
-              <View style={[irf.stepNum, { backgroundColor:desc?Colors.primary:Colors.borderLight }]}>
+              <View style={[irf.stepNum, { backgroundColor:desc?C.primary:C.borderLight }]}>
                 {desc ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>3</Text>}
               </View>
               <View style={{ flex:1 }}>
@@ -516,7 +522,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
 
         {/* Map step (always before evidence) */}
         <View style={irf.step}>
-          <View style={[irf.stepNum, { backgroundColor:pinCoord?Colors.primary:Colors.borderLight }]}>
+          <View style={[irf.stepNum, { backgroundColor:pinCoord?C.primary:C.borderLight }]}>
             {pinCoord ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>{isReport?'5':'4'}</Text>}
           </View>
           <View style={{ flex:1 }}>
@@ -554,7 +560,7 @@ function InlineRegisterForm({ type, citizens, reports, onSave, onDone }: {
 
         {/* Evidence step (always last) */}
         <View style={irf.step}>
-          <View style={[irf.stepNum, { backgroundColor:hasEv?Colors.primary:Colors.borderLight }]}>
+          <View style={[irf.stepNum, { backgroundColor:hasEv?C.primary:C.borderLight }]}>
             {hasEv ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={irf.stepNumTxt}>{isReport?'6':'5'}</Text>}
           </View>
           <View style={{ flex:1 }}>
@@ -601,6 +607,7 @@ function RegistrarSection({ citizens, reports, onSaveReport, onSaveAction }: {
   citizens:Citizen[]; reports:CitizenReport[];
   onSaveReport:(d:any)=>void; onSaveAction:(d:any)=>void;
 }) {
+  const C = useColors();
   const [activeForm, setActiveForm] = useState<RegType|null>(null);
 
   if (activeForm) {
@@ -620,14 +627,14 @@ function RegistrarSection({ citizens, reports, onSaveReport, onSaveAction }: {
       {/* Hero */}
       <View style={rl.hero}>
         <View style={rl.heroLeft}>
-          <View style={rl.heroIcon}><Ionicons name="business" size={32} color={Colors.primary} /></View>
+          <View style={rl.heroIcon}><Ionicons name="business" size={32} color={C.primary} /></View>
           <View>
             <Text style={rl.heroTitle}>Registro Manual{'\n'}Institucional</Text>
             <Text style={rl.heroSub}>Para ciudadanos sin dispositivo móvil que acuden físicamente con evidencia</Text>
           </View>
         </View>
         <View style={rl.heroBadge}>
-          <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
+          <Ionicons name="shield-checkmark" size={16} color={C.primary} />
           <Text style={rl.heroBadgeTxt}>Acceso institucional</Text>
         </View>
       </View>
@@ -974,15 +981,16 @@ const mu = StyleSheet.create({
 
 // ─── Ciudadanos ───────────────────────────────────────────────
 function CiudadanosSection({ citizens, reports, actions }: { citizens:Citizen[]; reports:CitizenReport[]; actions:HelpAction[] }) {
+  const C = useColors();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Citizen|null>(null);
   const filtered = search ? citizens.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())) : citizens;
   return (
     <View style={{ flex:1 }}>
       <View style={cs.searchBox}>
-        <Ionicons name="search" size={20} color={Colors.textMuted} />
-        <TextInput style={cs.searchInput} value={search} onChangeText={setSearch} placeholder="Buscar ciudadano..." placeholderTextColor={Colors.textMuted} />
-        {search?<TouchableOpacity onPress={()=>setSearch('')}><Ionicons name="close-circle" size={20} color={Colors.textMuted} /></TouchableOpacity>:null}
+        <Ionicons name="search" size={20} color={C.textMuted} />
+        <TextInput style={cs.searchInput} value={search} onChangeText={setSearch} placeholder="Buscar ciudadano..." placeholderTextColor={C.textMuted} />
+        {search?<TouchableOpacity onPress={()=>setSearch('')}><Ionicons name="close-circle" size={20} color={C.textMuted} /></TouchableOpacity>:null}
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap:12, paddingBottom:40 }}>
         {filtered.map(c => {
@@ -1001,7 +1009,7 @@ function CiudadanosSection({ citizens, reports, actions }: { citizens:Citizen[];
                 <View style={cs.statChip}><Ionicons name="hand-right" size={14} color="#8B5CF6" /><Text style={[cs.statTxt,{color:'#8B5CF6'}]}>{aCount}</Text></View>
                 {instCount>0&&<View style={[cs.statChip,{backgroundColor:'#DBEAFE'}]}><Ionicons name="business" size={14} color="#1D4ED8" /><Text style={[cs.statTxt,{color:'#1D4ED8'}]}>{instCount}</Text></View>}
               </View>
-              <View style={cs.arrowBox}><Ionicons name="chevron-forward" size={20} color={Colors.primary} /></View>
+              <View style={cs.arrowBox}><Ionicons name="chevron-forward" size={20} color={C.primary} /></View>
             </TouchableOpacity>
           );
         })}
@@ -1038,6 +1046,7 @@ function RecordDetailModal({
   onPressCovered?: () => void;
   onClose: () => void;
 }) {
+  const C = useColors();
   const isReport = !!report;
   const category = isReport ? report!.category : 'Acción de ayuda';
   const catColor = isReport ? (CAT_COLORS[report!.category] || Colors.category.other) : '#8B5CF6';
@@ -1058,7 +1067,7 @@ function RecordDetailModal({
           </TouchableOpacity>
 
           <View style={rd.headerRow}>
-            <View style={[rd.avatar, { backgroundColor: isReport ? Colors.primary : '#8B5CF6' }]}>
+            <View style={[rd.avatar, { backgroundColor: isReport ? C.primary : '#8B5CF6' }]}>
               <Text style={rd.avatarText}>{citizenName.charAt(0)}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -1216,6 +1225,7 @@ const mdl = StyleSheet.create({
 
 // ─── Table helpers ────────────────────────────────────────────
 function ReportesSection({ reports, actions }: { reports:CitizenReport[]; actions:HelpAction[] }) {
+  const C = useColors();
   const [selectedReport, setSelectedReport] = useState<CitizenReport | null>(null);
   const [selectedCoveredAction, setSelectedCoveredAction] = useState<HelpAction | null>(null);
   const [search, setSearch] = useState('');
@@ -1251,17 +1261,17 @@ function ReportesSection({ reports, actions }: { reports:CitizenReport[]; action
     <>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom:40 }}>
         <View style={lc.searchBox}>
-          <Ionicons name="search" size={18} color={Colors.textMuted} />
+          <Ionicons name="search" size={18} color={C.textMuted} />
           <TextInput
             style={lc.searchInput}
             placeholder="Buscar por título, ciudadano, categoría, ubicación..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={search}
             onChangeText={setSearch}
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+              <Ionicons name="close-circle" size={20} color={C.textMuted} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -1295,15 +1305,15 @@ function ReportesSection({ reports, actions }: { reports:CitizenReport[]; action
 
                 <View style={lc.metaRow}>
                   <View style={lc.metaItem}>
-                    <Ionicons name="person-outline" size={13} color={Colors.textMuted} />
+                    <Ionicons name="person-outline" size={13} color={C.textMuted} />
                     <Text style={lc.metaText}>{r.citizenName}</Text>
                   </View>
                   <View style={lc.metaItem}>
-                    <Ionicons name="location-outline" size={13} color={Colors.textMuted} />
+                    <Ionicons name="location-outline" size={13} color={C.textMuted} />
                     <Text style={lc.metaText} numberOfLines={1}>{r.location ?? 'Sin ubicación'}</Text>
                   </View>
                   <View style={lc.metaItem}>
-                    <Ionicons name="calendar-outline" size={13} color={Colors.textMuted} />
+                    <Ionicons name="calendar-outline" size={13} color={C.textMuted} />
                     <Text style={lc.metaText}>{r.date}</Text>
                   </View>
                 </View>
@@ -1332,7 +1342,7 @@ function ReportesSection({ reports, actions }: { reports:CitizenReport[]; action
 
           {filteredReports.length === 0 && (
             <View style={lc.emptyWrap}>
-              <Ionicons name="search" size={22} color={Colors.textMuted} />
+              <Ionicons name="search" size={22} color={C.textMuted} />
               <Text style={lc.emptyText}>No se encontraron reportes con ese criterio</Text>
             </View>
           )}
@@ -1362,6 +1372,7 @@ function ReportesSection({ reports, actions }: { reports:CitizenReport[]; action
   );
 }
 function AccionesSection({ actions }: { actions:HelpAction[] }) {
+  const C = useColors();
   const [selectedAction, setSelectedAction] = useState<HelpAction | null>(null);
   const [search, setSearch] = useState('');
   const { width } = useWindowDimensions();
@@ -1390,17 +1401,17 @@ function AccionesSection({ actions }: { actions:HelpAction[] }) {
     <>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom:40 }}>
         <View style={lc.searchBox}>
-          <Ionicons name="search" size={18} color={Colors.textMuted} />
+          <Ionicons name="search" size={18} color={C.textMuted} />
           <TextInput
             style={lc.searchInput}
             placeholder="Buscar por ciudadano, reporte, ubicación o texto..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={search}
             onChangeText={setSearch}
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+              <Ionicons name="close-circle" size={20} color={C.textMuted} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -1430,15 +1441,15 @@ function AccionesSection({ actions }: { actions:HelpAction[] }) {
 
               <View style={lc.metaRow}>
                 <View style={lc.metaItem}>
-                  <Ionicons name="person-outline" size={13} color={Colors.textMuted} />
+                  <Ionicons name="person-outline" size={13} color={C.textMuted} />
                   <Text style={lc.metaText}>{a.citizenName}</Text>
                 </View>
                 <View style={lc.metaItem}>
-                  <Ionicons name="location-outline" size={13} color={Colors.textMuted} />
+                  <Ionicons name="location-outline" size={13} color={C.textMuted} />
                   <Text style={lc.metaText} numberOfLines={1}>{a.location ?? 'Sin ubicación'}</Text>
                 </View>
                 <View style={lc.metaItem}>
-                  <Ionicons name="calendar-outline" size={13} color={Colors.textMuted} />
+                  <Ionicons name="calendar-outline" size={13} color={C.textMuted} />
                   <Text style={lc.metaText}>{a.date}</Text>
                 </View>
               </View>
@@ -1452,7 +1463,7 @@ function AccionesSection({ actions }: { actions:HelpAction[] }) {
 
           {filteredActions.length === 0 && (
             <View style={lc.emptyWrap}>
-              <Ionicons name="search" size={22} color={Colors.textMuted} />
+              <Ionicons name="search" size={22} color={C.textMuted} />
               <Text style={lc.emptyText}>No se encontraron acciones de ayuda</Text>
             </View>
           )}
@@ -1665,6 +1676,9 @@ const ds = StyleSheet.create({
 export default function AdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const C = useColors();
+  const NAV = getNAV(C);
+  const s = makeS(C);
   const [section, setSection] = useState<Section>('dashboard');
   const [reports, setReports] = useState<CitizenReport[]>(SEED_REPORTS);
   const [actions, setActions] = useState<HelpAction[]>(SEED_ACTIONS);
@@ -1726,7 +1740,7 @@ export default function AdminScreen() {
         <View style={s.topbar}>
           <Text style={s.pageTitle}>{TITLES[section]}</Text>
           <View style={s.instBadge}>
-            <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
+            <Ionicons name="shield-checkmark" size={16} color={C.primary} />
             <Text style={s.instBadgeTxt}>Vista Institucional</Text>
           </View>
         </View>
@@ -1742,7 +1756,7 @@ export default function AdminScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   root:{ flex:1, flexDirection:'row', backgroundColor:'#F5F7FA' },
   // ── Sidebar ── Minimalist white panel
   sidebar:{ width:SIDEBAR_W, backgroundColor:'#FFFFFF', paddingHorizontal:16, paddingVertical:20, gap:4, borderRightWidth:1, borderRightColor:'#E8ECF0' },

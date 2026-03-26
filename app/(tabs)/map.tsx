@@ -8,6 +8,7 @@ import { useUserLocation } from '../../hooks/useUserLocation';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { useColors } from '../../contexts/ThemeContext';
 
 export type ReportCategory = 'trash' | 'pothole' | 'drain' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
 
@@ -164,6 +165,8 @@ async function fetchStreetRoute(
 export default function MapScreen() {
   const router = useRouter();
   const { location, errorMsg } = useUserLocation();
+  const C = useColors();
+  const styles = makeStyles(C);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedReport, setSelectedReport] = useState<ReportMock | null>(null);
@@ -490,11 +493,11 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   mapContainer: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#F9FAFB'
+    backgroundColor: C.background,
   },
   centerContainer: {
     flex: 1,
@@ -512,7 +515,7 @@ const styles = StyleSheet.create({
   filterPillMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 30,
@@ -522,12 +525,12 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
   },
   filterPillMainText: {
     fontWeight: '700',
     fontSize: 15,
-    color: '#111827',
+    color: C.text,
     marginLeft: 8,
   },
   clearFilterIcon: {
@@ -544,7 +547,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
@@ -554,11 +557,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
     width: 150,
   },
   filterDropdownItemActive: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.borderLight,
   },
   dropdownDot: {
     width: 10,
@@ -573,7 +576,7 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   compactCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: C.surface,
     borderRadius: 20,
     padding: 16,
     shadowColor: '#000',
@@ -582,7 +585,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.7)',
+    borderColor: C.borderLight,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -597,16 +600,16 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#111827',
+    color: C.text,
   },
   cardCategory: {
     fontSize: 13,
-    color: '#6B7280',
+    color: C.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },
   closeButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.borderLight,
     borderRadius: 14,
     width: 28,
     height: 28,
@@ -618,23 +621,23 @@ const styles = StyleSheet.create({
   },
   expandedDescription: {
     fontSize: 14,
-    color: '#4B5563',
+    color: C.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
   },
   expandedMockImage: {
     width: '100%',
     height: 120,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.borderLight,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
   },
   expandedMockImageText: {
     marginTop: 8,
-    color: '#9CA3AF',
+    color: C.textMuted,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -646,13 +649,13 @@ const styles = StyleSheet.create({
   routeCompactInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.background,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: C.borderLight,
     justifyContent: 'space-between',
   },
   routeMetric: {
@@ -662,12 +665,12 @@ const styles = StyleSheet.create({
   routeMetricText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: C.text,
     marginLeft: 4,
   },
   calcText: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: C.textMuted,
     fontStyle: 'italic',
     marginBottom: 12,
     textAlign: 'center'
@@ -693,7 +696,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   attendMapButton: {
-    backgroundColor: '#1D9E75',
+    backgroundColor: C.primary,
     flexDirection: 'row',
     borderRadius: 12,
     paddingVertical: 12,

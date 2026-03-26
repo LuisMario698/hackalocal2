@@ -14,18 +14,19 @@ import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
 import { useFontSize, FONT_STEP_COUNT } from '../contexts/FontSizeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme, useColors } from '../contexts/ThemeContext';
 
 export default function SettingsScreen() {
   const { signOut } = useAuth();
+  const { isDark, setDark } = useTheme();
+  const C = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState(true);
   const [radiusKm, setRadiusKm] = useState('2');
   const { step: fontStep, setStep: setFontStep, fs } = useFontSize();
-  const [darkMode, setDarkMode] = useState(false);
   const trackWidthRef = useRef(0);
 
   const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
@@ -54,6 +55,8 @@ export default function SettingsScreen() {
     });
   };
 
+  const s = makeS(C);
+
   return (
     <ScrollView
       style={[s.container, { paddingTop: insets.top + 12 }]}
@@ -62,7 +65,7 @@ export default function SettingsScreen() {
     >
       <View style={s.header}>
         <Pressable onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
+          <Ionicons name="arrow-back" size={22} color={C.text} />
         </Pressable>
         <Text style={s.title}>Configuracion</Text>
       </View>
@@ -73,19 +76,19 @@ export default function SettingsScreen() {
         onPress={() => router.push('/account' as any)}
       >
         <View style={s.linkIcon}>
-          <Ionicons name="person-outline" size={20} color={Colors.primary} />
+          <Ionicons name="person-outline" size={20} color={C.primary} />
         </View>
         <View style={s.linkText}>
           <Text style={s.linkTitle}>Cuenta</Text>
           <Text style={s.linkHint}>Nombre, foto, correo, telefono</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
       </Pressable>
 
       {/* Notificaciones */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+          <Ionicons name="notifications-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>Notificaciones</Text>
         </View>
 
@@ -97,7 +100,7 @@ export default function SettingsScreen() {
           <Switch
             value={notifications}
             onValueChange={setNotifications}
-            trackColor={{ false: Colors.border, true: Colors.primary }}
+            trackColor={{ false: C.border, true: C.primary }}
             thumbColor="#fff"
           />
         </View>
@@ -109,21 +112,21 @@ export default function SettingsScreen() {
           onChangeText={setRadiusKm}
           keyboardType="numeric"
           placeholder="2"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
         />
       </View>
 
       {/* Accesibilidad — Tamano de letra */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="text-outline" size={18} color={Colors.primary} />
+          <Ionicons name="text-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>Tamano de letra</Text>
         </View>
 
         {/* Labels */}
         <View style={s.sliderLabels}>
-          <Text style={{ fontSize: 11, color: Colors.textMuted }}>A</Text>
-          <Text style={{ fontSize: 22, fontWeight: '700', color: Colors.textMuted }}>A</Text>
+          <Text style={{ fontSize: 11, color: C.textMuted }}>A</Text>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: C.textMuted }}>A</Text>
         </View>
 
         {/* Track + Dots */}
@@ -163,7 +166,7 @@ export default function SettingsScreen() {
       {/* Apariencia */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="moon-outline" size={18} color={Colors.primary} />
+          <Ionicons name="moon-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>Apariencia</Text>
         </View>
 
@@ -173,9 +176,9 @@ export default function SettingsScreen() {
             <Text style={s.hint}>Tema oscuro en toda la app</Text>
           </View>
           <Switch
-            value={darkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: Colors.border, true: Colors.primary }}
+            value={isDark}
+            onValueChange={setDark}
+            trackColor={{ false: C.border, true: C.primary }}
             thumbColor="#fff"
           />
         </View>
@@ -184,7 +187,7 @@ export default function SettingsScreen() {
       {/* Idioma */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="language-outline" size={18} color={Colors.primary} />
+          <Ionicons name="language-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>Idioma</Text>
         </View>
 
@@ -202,7 +205,7 @@ export default function SettingsScreen() {
         try { await signOut(); } catch {}
         router.replace('/login' as any);
       }}>
-        <Ionicons name="log-out-outline" size={18} color={Colors.error} />
+        <Ionicons name="log-out-outline" size={18} color={C.error} />
         <Text style={s.logoutText}>Cerrar sesion</Text>
       </Pressable>
 
@@ -211,10 +214,10 @@ export default function SettingsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: C.background,
   },
   content: {
     paddingHorizontal: 20,
@@ -222,7 +225,7 @@ const s = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.text,
+    color: C.text,
   },
   header: {
     flexDirection: 'row',
@@ -234,12 +237,12 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   section: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -256,33 +259,33 @@ const s = StyleSheet.create({
     marginBottom: 14,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: C.borderLight,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 6,
   },
   hint: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: C.textMuted,
     marginTop: 1,
   },
   input: {
-    backgroundColor: Colors.background,
+    backgroundColor: C.background,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: Platform.select({ ios: 12, default: 10 }),
     fontSize: 14,
-    color: Colors.text,
+    color: C.text,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
     marginBottom: 8,
   },
   row: {
@@ -300,7 +303,7 @@ const s = StyleSheet.create({
     gap: 8,
   },
   langChip: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -308,13 +311,13 @@ const s = StyleSheet.create({
   langChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.primary,
+    color: C.primary,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: C.error + '18',
     borderRadius: 14,
     paddingVertical: 14,
     gap: 8,
@@ -323,14 +326,14 @@ const s = StyleSheet.create({
   logoutText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.error,
+    color: C.error,
   },
 
   // ===== Link row (Cuenta) =====
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -344,7 +347,7 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -355,11 +358,11 @@ const s = StyleSheet.create({
   linkTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
   },
   linkHint: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: C.textMuted,
     marginTop: 2,
   },
 
@@ -382,26 +385,26 @@ const s = StyleSheet.create({
     right: 0,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: C.border,
   },
   sliderRailFill: {
     position: 'absolute',
     left: 0,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   sliderDot: {
     position: 'absolute',
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: Colors.border,
+    backgroundColor: C.border,
     marginLeft: -7,
     top: 9,
   },
   sliderDotActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   sliderDotCurrent: {
     width: 22,
@@ -409,9 +412,9 @@ const s = StyleSheet.create({
     borderRadius: 11,
     marginLeft: -11,
     top: 5,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: C.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,

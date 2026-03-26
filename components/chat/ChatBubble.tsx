@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Image } from 'react-native';
 import Text from '../ScaledText';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 
 interface ChatBubbleProps {
   role: 'user' | 'assistant';
@@ -10,6 +10,8 @@ interface ChatBubbleProps {
 }
 
 export default function ChatBubble({ role, content, imageUrl }: ChatBubbleProps) {
+  const C = useColors();
+  const styles = makeStyles(C);
   const isUser = role === 'user';
 
   return (
@@ -29,7 +31,7 @@ export default function ChatBubble({ role, content, imageUrl }: ChatBubbleProps)
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -45,7 +47,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -62,11 +64,11 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   bubbleUser: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderBottomRightRadius: 4,
   },
   bubbleAssistant: {
-    backgroundColor: '#F0F2F5',
+    backgroundColor: C.borderLight,
     borderBottomLeftRadius: 4,
   },
   bubbleImage: {
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 15,
     lineHeight: 21,
-    color: Colors.text,
+    color: C.text,
   },
   textUser: {
     color: '#FFFFFF',

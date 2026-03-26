@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 
 export default function TypingIndicator() {
   const dot1 = useRef(new Animated.Value(0)).current;
@@ -32,6 +32,9 @@ export default function TypingIndicator() {
     transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }],
   });
 
+  const C = useColors();
+  const styles = makeStyles(C);
+
   return (
     <View style={styles.row}>
       <View style={styles.avatar}>
@@ -46,7 +49,7 @@ export default function TypingIndicator() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -57,7 +60,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
   },
   bubble: {
     flexDirection: 'row',
-    backgroundColor: '#F0F2F5',
+    backgroundColor: C.borderLight,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 18,

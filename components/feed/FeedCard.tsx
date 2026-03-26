@@ -11,18 +11,11 @@ import Text from '../ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
+import { useColors } from '../../contexts/ThemeContext';
 import ImageViewer from '../ImageViewer';
 
-// -- Colores del proyecto --
-const COLORS = {
-  primary: '#1D9E75',
-  accent: '#D85A30',
-  background: '#F5F7FA',
-  white: '#FFFFFF',
-  textPrimary: '#1A1D21',
-  textSecondary: '#6B7280',
-  textTertiary: '#9CA3AF',
-  border: '#E8ECF0',
+// -- Colores semanticos (categoria/status — no cambian con tema) --
+const SEMANTIC = {
   category: {
     trash: '#E24B4A',
     pothole: '#8B5E3C',
@@ -40,7 +33,7 @@ const COLORS = {
     resolved: { bg: '#E1F5EE', text: '#1D9E75' },
     rejected: { bg: '#FDE8E8', text: '#C53030' },
   },
-};
+} as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
   trash: 'Basura',
@@ -108,6 +101,8 @@ interface FeedCardProps {
 export default function FeedCard({ report, onOpenComments, onPress, onSolicitar, onCompletar, isOwnReport }: FeedCardProps) {
   const router = useRouter();
   const { setHighlightedReportId } = useMapHighlight();
+  const C = useColors();
+  const styles = makeStyles(C);
 
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(report.likesCount);
@@ -152,8 +147,8 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
     router.push('/(tabs)/map' as any);
   };
 
-  const categoryColor = COLORS.category[report.category] || COLORS.category.other;
-  const statusStyle = COLORS.status[report.status] || COLORS.status.pending;
+  const categoryColor = SEMANTIC.category[report.category] || SEMANTIC.category.other;
+  const statusStyle = SEMANTIC.status[report.status] || SEMANTIC.status.pending;
   const avatarBg = getAvatarColor(report.userName);
   const commentsCount = report.initialComments?.length ?? report.commentsCount;
 
@@ -169,7 +164,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
           <View style={styles.headerMeta}>
             <Text style={styles.timeAgo}>{report.timeAgo}</Text>
             <View style={styles.dot} />
-            <Ionicons name="location-sharp" size={12} color={COLORS.textTertiary} />
+            <Ionicons name="location-sharp" size={12} color={C.textMuted} />
             <Text style={styles.locationSmall} numberOfLines={1}>
               {report.location}
             </Text>
@@ -245,7 +240,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
               styles.severityDot,
               {
                 backgroundColor:
-                  level <= report.severity ? COLORS.accent : COLORS.border,
+                  level <= report.severity ? C.accent : C.border,
               },
             ]}
           />
@@ -264,7 +259,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={22}
-            color={liked ? '#E24B4A' : COLORS.textSecondary}
+            color={liked ? '#E24B4A' : C.textSecondary}
           />
           <Text style={[styles.actionText, liked && { color: '#E24B4A', fontWeight: '700' }]}>
             {likesCount}
@@ -275,7 +270,7 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
           style={styles.actionButton}
           onPress={() => onOpenComments(report)}
         >
-          <Ionicons name="chatbubble-outline" size={20} color={COLORS.textSecondary} />
+          <Ionicons name="chatbubble-outline" size={20} color={C.textSecondary} />
           <Text style={styles.actionText}>{commentsCount}</Text>
         </Pressable>
 
@@ -283,16 +278,16 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
           <Ionicons
             name={shared ? 'checkmark-circle' : 'share-social-outline'}
             size={20}
-            color={shared ? COLORS.primary : COLORS.textSecondary}
+            color={shared ? C.primary : C.textSecondary}
           />
-          <Text style={[styles.actionText, shared && { color: COLORS.primary }]}>
+          <Text style={[styles.actionText, shared && { color: C.primary }]}>
             {shared ? 'Copiado' : 'Compartir'}
           </Text>
         </Pressable>
 
         <Pressable style={[styles.actionButton, styles.joinButton]} onPress={handleJoin}>
-          <Ionicons name="hand-left-outline" size={18} color={COLORS.primary} />
-          <Text style={[styles.actionText, { color: COLORS.primary, fontWeight: '600' }]}>
+          <Ionicons name="hand-left-outline" size={18} color={C.primary} />
+          <Text style={[styles.actionText, { color: C.primary, fontWeight: '600' }]}>
             Me uno
           </Text>
         </Pressable>
@@ -308,9 +303,9 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
             <Ionicons
               name={solicitado ? 'checkmark-circle' : 'arrow-redo-outline'}
               size={16}
-              color={solicitado ? '#FFFFFF' : COLORS.accent}
+              color={solicitado ? '#FFFFFF' : C.accent}
             />
-            <Text style={[styles.actionText, { color: solicitado ? '#FFFFFF' : COLORS.accent, fontWeight: '600' }]}>
+            <Text style={[styles.actionText, { color: solicitado ? '#FFFFFF' : C.accent, fontWeight: '600' }]}>
               {solicitado ? 'Solicitado' : 'Solicitar'}
             </Text>
           </Pressable>
@@ -321,8 +316,8 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
             style={[styles.actionButton, styles.completarButton]}
             onPress={() => onCompletar?.(report)}
           >
-            <Ionicons name="checkmark-done-outline" size={16} color={COLORS.primary} />
-            <Text style={[styles.actionText, { color: COLORS.primary, fontWeight: '600' }]}>
+            <Ionicons name="checkmark-done-outline" size={16} color={C.primary} />
+            <Text style={[styles.actionText, { color: C.primary, fontWeight: '600' }]}>
               Completar
             </Text>
           </Pressable>
@@ -332,9 +327,9 @@ export default function FeedCard({ report, onOpenComments, onPress, onSolicitar,
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderRadius: 18,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -345,7 +340,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#E7ECF2',
+    borderColor: C.border,
   },
   header: {
     flexDirection: 'row',
@@ -371,7 +366,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: C.text,
   },
   headerMeta: {
     flexDirection: 'row',
@@ -380,18 +375,18 @@ const styles = StyleSheet.create({
   },
   timeAgo: {
     fontSize: 12,
-    color: COLORS.textTertiary,
+    color: C.textMuted,
   },
   dot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: COLORS.textTertiary,
+    backgroundColor: C.textMuted,
     marginHorizontal: 6,
   },
   locationSmall: {
     fontSize: 12,
-    color: COLORS.textTertiary,
+    color: C.textMuted,
     marginLeft: 2,
     maxWidth: 120,
   },
@@ -414,7 +409,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: C.text,
     flex: 1,
   },
   categoryBadge: {
@@ -436,7 +431,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     lineHeight: 21,
     marginBottom: 14,
   },
@@ -469,7 +464,7 @@ const styles = StyleSheet.create({
   severityLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.textTertiary,
+    color: C.textMuted,
     marginRight: 2,
   },
   severityDot: {
@@ -479,7 +474,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: C.border,
     marginBottom: 12,
   },
   actions: {
@@ -496,31 +491,31 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   actionButtonActive: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.borderLight,
   },
   actionText: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     fontWeight: '600',
   },
   joinButton: {
     marginLeft: 'auto',
-    backgroundColor: COLORS.primary + '14',
+    backgroundColor: C.primary + '14',
     borderWidth: 1,
-    borderColor: COLORS.primary + '3A',
+    borderColor: C.primary + '3A',
   },
   solicitarButton: {
-    backgroundColor: COLORS.accent + '12',
+    backgroundColor: C.accent + '12',
     borderWidth: 1,
-    borderColor: COLORS.accent + '30',
+    borderColor: C.accent + '30',
   },
   solicitadoButton: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
+    backgroundColor: C.accent,
+    borderColor: C.accent,
   },
   completarButton: {
-    backgroundColor: COLORS.primary + '12',
+    backgroundColor: C.primary + '12',
     borderWidth: 1,
-    borderColor: COLORS.primary + '30',
+    borderColor: C.primary + '30',
   },
 });

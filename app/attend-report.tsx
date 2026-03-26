@@ -13,32 +13,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useColors } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { File as ExpoFile } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import type { Report } from '../lib/database.types';
 
-const COLORS = {
-  primary: '#1D9E75',
-  accent: '#D85A30',
-  background: '#F5F7FA',
-  white: '#FFFFFF',
-  textPrimary: '#1A1D21',
-  textSecondary: '#6B7280',
-  textTertiary: '#9CA3AF',
-  border: '#E8ECF0',
-  danger: '#C53030',
-  warning: '#B8860B',
-  category: {
-    trash: '#E24B4A',
-    pothole: '#8B5E3C',
-    drain: '#5B8FA8',
-    water: '#378ADD',
-    wildlife: '#BA7517',
-    electronic: '#7F77DD',
-    organic: '#1D9E75',
-    other: '#6B7280',
-  } as Record<string, string>,
+const CAT_COLORS: Record<string, string> = {
+  trash: '#E24B4A',
+  pothole: '#8B5E3C',
+  drain: '#5B8FA8',
+  water: '#378ADD',
+  wildlife: '#BA7517',
+  electronic: '#7F77DD',
+  organic: '#1D9E75',
+  other: '#6B7280',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -57,6 +46,8 @@ type Step = 'details' | 'in_progress' | 'proof' | 'submitted';
 export default function AttendReportScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const C = useColors();
+  const styles = makeStyles(C);
   const { reportId } = useLocalSearchParams<{ reportId: string }>();
   const { user, profile } = useAuth();
 
@@ -226,7 +217,7 @@ export default function AttendReportScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={C.primary} />
           <Text style={styles.loadingText}>Cargando reporte...</Text>
         </View>
       </View>
@@ -235,14 +226,14 @@ export default function AttendReportScreen() {
 
   if (!report) return null;
 
-  const categoryColor = COLORS.category[report.category] || COLORS.category.other;
+  const categoryColor = CAT_COLORS[report.category] || CAT_COLORS.other;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={C.text} />
         </Pressable>
         <Text style={styles.headerTitle}>
           {step === 'submitted' ? 'Evidencia enviada' : 'Atender reporte'}
@@ -264,7 +255,7 @@ export default function AttendReportScreen() {
               <View key={label} style={styles.stepItem}>
                 <View style={[styles.stepCircle, isActive && styles.stepCircleActive]}>
                   {i < stepIndex ? (
-                    <Ionicons name="checkmark" size={14} color={COLORS.white} />
+                    <Ionicons name="checkmark" size={14} color={'#fff'} />
                   ) : (
                     <Text style={[styles.stepNumber, isActive && styles.stepNumberActive]}>
                       {i + 1}
@@ -295,7 +286,7 @@ export default function AttendReportScreen() {
                   key={level}
                   style={[
                     styles.severityDot,
-                    { backgroundColor: level <= report.severity ? COLORS.accent : COLORS.border },
+                    { backgroundColor: level <= report.severity ? C.accent : C.border },
                   ]}
                 />
               ))}
@@ -308,12 +299,12 @@ export default function AttendReportScreen() {
           ) : null}
 
           <View style={styles.infoRow}>
-            <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} />
+            <Ionicons name="person-outline" size={16} color={C.textSecondary} />
             <Text style={styles.infoText}>Reportado por {reporterName}</Text>
           </View>
           {report.address ? (
             <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
+              <Ionicons name="location-outline" size={16} color={C.textSecondary} />
               <Text style={styles.infoText}>{report.address}</Text>
             </View>
           ) : null}
@@ -331,7 +322,7 @@ export default function AttendReportScreen() {
         {step === 'details' && report.status === 'verified' && (
           <View style={styles.actionSection}>
             <View style={styles.infoBox}>
-              <Ionicons name="information-circle-outline" size={22} color={COLORS.primary} />
+              <Ionicons name="information-circle-outline" size={22} color={C.primary} />
               <Text style={styles.infoBoxText}>
                 Al atender este reporte, te comprometes a ir al sitio y resolver el problema reportado. Tomando una foto de evidencia al terminar.
               </Text>
@@ -342,10 +333,10 @@ export default function AttendReportScreen() {
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color={COLORS.white} size="small" />
+                <ActivityIndicator color={'#fff'} size="small" />
               ) : (
                 <>
-                  <Ionicons name="hand-left" size={20} color={COLORS.white} />
+                  <Ionicons name="hand-left" size={20} color={'#fff'} />
                   <Text style={styles.primaryButtonText}>Atender este reporte</Text>
                 </>
               )}
@@ -356,8 +347,8 @@ export default function AttendReportScreen() {
         {/* Already claimed by someone else */}
         {step === 'details' && report.status === 'in_progress' && report.attended_by !== user?.id && (
           <View style={styles.actionSection}>
-            <View style={[styles.infoBox, { borderColor: COLORS.warning }]}>
-              <Ionicons name="alert-circle-outline" size={22} color={COLORS.warning} />
+            <View style={[styles.infoBox, { borderColor: '#B8860B' }]}>
+              <Ionicons name="alert-circle-outline" size={22} color={'#B8860B'} />
               <Text style={styles.infoBoxText}>
                 Este reporte ya esta siendo atendido por otro usuario.
               </Text>
@@ -368,8 +359,8 @@ export default function AttendReportScreen() {
         {/* STEP: in_progress — at location, take proof */}
         {(step === 'in_progress') && (
           <View style={styles.actionSection}>
-            <View style={[styles.infoBox, { borderColor: COLORS.primary }]}>
-              <Ionicons name="checkmark-circle-outline" size={22} color={COLORS.primary} />
+            <View style={[styles.infoBox, { borderColor: C.primary }]}>
+              <Ionicons name="checkmark-circle-outline" size={22} color={C.primary} />
               <Text style={styles.infoBoxText}>
                 Has reclamado este reporte. Ve al sitio, resuelve el problema y toma una foto como evidencia.
               </Text>
@@ -382,11 +373,11 @@ export default function AttendReportScreen() {
 
             <View style={styles.photoButtons}>
               <Pressable style={styles.photoButton} onPress={handleTakePhoto}>
-                <Ionicons name="camera" size={28} color={COLORS.primary} />
+                <Ionicons name="camera" size={28} color={C.primary} />
                 <Text style={styles.photoButtonText}>Camara</Text>
               </Pressable>
               <Pressable style={styles.photoButton} onPress={handlePickPhoto}>
-                <Ionicons name="images" size={28} color={COLORS.primary} />
+                <Ionicons name="images" size={28} color={C.primary} />
                 <Text style={styles.photoButtonText}>Galeria</Text>
               </Pressable>
             </View>
@@ -420,7 +411,7 @@ export default function AttendReportScreen() {
                   setStep('in_progress');
                 }}
               >
-                <Ionicons name="refresh-outline" size={18} color={COLORS.primary} />
+                <Ionicons name="refresh-outline" size={18} color={C.primary} />
                 <Text style={styles.secondaryButtonText}>Retomar foto</Text>
               </Pressable>
 
@@ -430,10 +421,10 @@ export default function AttendReportScreen() {
                 disabled={submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator color={COLORS.white} size="small" />
+                  <ActivityIndicator color={'#fff'} size="small" />
                 ) : (
                   <>
-                    <Ionicons name="send" size={18} color={COLORS.white} />
+                    <Ionicons name="send" size={18} color={'#fff'} />
                     <Text style={styles.primaryButtonText}>Enviar evidencia</Text>
                   </>
                 )}
@@ -447,14 +438,14 @@ export default function AttendReportScreen() {
           <View style={styles.actionSection}>
             <View style={styles.successBox}>
               <View style={styles.successIcon}>
-                <Ionicons name="checkmark-circle" size={56} color={COLORS.primary} />
+                <Ionicons name="checkmark-circle" size={56} color={C.primary} />
               </View>
               <Text style={styles.successTitle}>Evidencia enviada</Text>
               <Text style={styles.successText}>
                 Tu evidencia ha sido enviada para verificacion. Un verificador revisara tu foto y confirmara la resolucion del reporte. Recibiras una notificacion con el resultado.
               </Text>
               <View style={styles.rewardPreview}>
-                <Ionicons name="leaf" size={20} color={COLORS.primary} />
+                <Ionicons name="leaf" size={20} color={C.primary} />
                 <Text style={styles.rewardText}>
                   Al ser confirmado recibiras puntos ecologicos por tu contribucion
                 </Text>
@@ -465,7 +456,7 @@ export default function AttendReportScreen() {
               style={styles.primaryButton}
               onPress={() => router.back()}
             >
-              <Ionicons name="arrow-back" size={18} color={COLORS.white} />
+              <Ionicons name="arrow-back" size={18} color={'#fff'} />
               <Text style={styles.primaryButtonText}>Volver al inicio</Text>
             </Pressable>
           </View>
@@ -475,10 +466,10 @@ export default function AttendReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: C.background,
   },
   loadingContainer: {
     flex: 1,
@@ -488,7 +479,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -496,9 +487,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: C.border,
   },
   backButton: {
     width: 40,
@@ -510,7 +501,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: C.text,
   },
   scrollView: {
     flex: 1,
@@ -522,7 +513,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     marginBottom: 8,
   },
   stepItem: {
@@ -533,40 +524,40 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.border,
+    backgroundColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepCircleActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
   },
   stepNumber: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textTertiary,
+    color: C.textMuted,
   },
   stepNumberActive: {
-    color: COLORS.white,
+    color: '#fff',
   },
   stepLabel: {
     fontSize: 11,
-    color: COLORS.textTertiary,
+    color: C.textMuted,
     fontWeight: '500',
   },
   stepLabelActive: {
-    color: COLORS.primary,
+    color: C.primary,
     fontWeight: '600',
   },
 
   // Report card
   reportCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     marginHorizontal: 16,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   reportHeader: {
     flexDirection: 'row',
@@ -594,12 +585,12 @@ const styles = StyleSheet.create({
   reportTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: C.text,
     marginBottom: 8,
   },
   reportDescription: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -611,7 +602,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     flex: 1,
   },
   severityRow: {
@@ -621,7 +612,7 @@ const styles = StyleSheet.create({
   },
   severityLabel: {
     fontSize: 11,
-    color: COLORS.textTertiary,
+    color: C.textMuted,
     marginRight: 4,
   },
   severityDot: {
@@ -635,7 +626,7 @@ const styles = StyleSheet.create({
   photoLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     marginBottom: 8,
   },
   photo: {
@@ -651,9 +642,9 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: COLORS.primary + '0A',
+    backgroundColor: C.primary + '0A',
     borderWidth: 1,
-    borderColor: COLORS.primary + '30',
+    borderColor: C.primary + '30',
     borderRadius: 10,
     padding: 14,
     gap: 10,
@@ -662,21 +653,21 @@ const styles = StyleSheet.create({
   infoBoxText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     lineHeight: 19,
   },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
     gap: 8,
   },
   primaryButtonText: {
-    color: COLORS.white,
+    color: '#fff',
     fontSize: 16,
     fontWeight: '700',
   },
@@ -687,16 +678,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: C.primary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     gap: 6,
   },
   secondaryButtonText: {
-    color: COLORS.primary,
+    color: C.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -705,11 +696,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: C.text,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     marginTop: -4,
   },
   photoButtons: {
@@ -720,9 +711,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderWidth: 2,
-    borderColor: COLORS.primary + '30',
+    borderColor: C.primary + '30',
     borderStyle: 'dashed',
     borderRadius: 12,
     paddingVertical: 28,
@@ -731,7 +722,7 @@ const styles = StyleSheet.create({
   photoButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: C.primary,
   },
 
   // Comparison
@@ -746,7 +737,7 @@ const styles = StyleSheet.create({
   comparisonLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
   },
   comparisonPhoto: {
@@ -763,12 +754,12 @@ const styles = StyleSheet.create({
 
   // Success
   successBox: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     gap: 8,
   },
   successIcon: {
@@ -777,11 +768,11 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: C.text,
   },
   successText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -789,7 +780,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.primary + '0A',
+    backgroundColor: C.primary + '0A',
     borderRadius: 10,
     padding: 12,
     marginTop: 8,
@@ -797,7 +788,7 @@ const styles = StyleSheet.create({
   rewardText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.primary,
+    color: C.primary,
     fontWeight: '500',
   },
 });

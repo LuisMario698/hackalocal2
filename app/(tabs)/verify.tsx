@@ -13,7 +13,7 @@ import {
 import Text from '../../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { REPORT_CATEGORIES } from '../../constants/Gamification';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -69,6 +69,8 @@ function formatTimeAgo(dateStr: string): string {
 export default function VerifierTab() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const C = useColors();
+  const styles = makeStyles(C);
 
   // Data state
   const [pendingReports, setPendingReports] = useState<PendingReport[]>([]);
@@ -455,9 +457,9 @@ export default function VerifierTab() {
     REPORT_CATEGORIES.find((c) => c.id === cat);
 
   const getSeverityLabel = (sev: number) => {
-    if (sev >= 4) return { label: 'Alta', color: Colors.error };
+    if (sev >= 4) return { label: 'Alta', color: C.error };
     if (sev >= 3) return { label: 'Media', color: '#F59E0B' };
-    return { label: 'Baja', color: Colors.primary };
+    return { label: 'Baja', color: C.primary };
   };
 
   const unreviewedCount = pendingReports.length;
@@ -585,7 +587,7 @@ export default function VerifierTab() {
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, { paddingTop: insets.top, backgroundColor: C.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Verificación</Text>
@@ -602,7 +604,7 @@ export default function VerifierTab() {
           style={[styles.tab, activeTab === 'pending' && styles.tabActive]}
           onPress={() => setActiveTab('pending')}
         >
-          <Ionicons name="document-text" size={16} color={activeTab === 'pending' ? '#B45309' : Colors.textMuted} />
+          <Ionicons name="document-text" size={16} color={activeTab === 'pending' ? '#B45309' : C.textMuted} />
           <Text style={[styles.tabText, activeTab === 'pending' && { color: '#B45309', fontWeight: '700' }]}>
             Reportes nuevos
           </Text>
@@ -616,7 +618,7 @@ export default function VerifierTab() {
           style={[styles.tab, activeTab === 'resolutions' && styles.tabActiveBlue]}
           onPress={() => setActiveTab('resolutions')}
         >
-          <Ionicons name="shield-checkmark" size={16} color={activeTab === 'resolutions' ? '#1E40AF' : Colors.textMuted} />
+          <Ionicons name="shield-checkmark" size={16} color={activeTab === 'resolutions' ? '#1E40AF' : C.textMuted} />
           <Text style={[styles.tabText, activeTab === 'resolutions' && { color: '#1E40AF', fontWeight: '700' }]}>
             Resoluciones
           </Text>
@@ -648,7 +650,7 @@ export default function VerifierTab() {
           </View>
         </View>
         <View style={[styles.statChip, { backgroundColor: '#D1FAE5' }]}>
-          <View style={[styles.statIconWrap, { backgroundColor: Colors.primary }]}>
+          <View style={[styles.statIconWrap, { backgroundColor: C.primary }]}>
             <Ionicons name="checkmark-circle" size={16} color="#fff" />
           </View>
           <View>
@@ -661,7 +663,7 @@ export default function VerifierTab() {
           </View>
         </View>
         <View style={[styles.statChip, { backgroundColor: '#FEE2E2' }]}>
-          <View style={[styles.statIconWrap, { backgroundColor: Colors.error }]}>
+          <View style={[styles.statIconWrap, { backgroundColor: C.error }]}>
             <Ionicons name="close-circle" size={16} color="#fff" />
           </View>
           <View>
@@ -696,14 +698,14 @@ export default function VerifierTab() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={Colors.primary}
+            tintColor={C.primary}
           />
         }
       >
         {/* Loading */}
         {loading && (
           <View style={styles.empty}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <ActivityIndicator size="large" color={C.primary} />
             <Text style={styles.emptyText}>Cargando reportes...</Text>
           </View>
         )}
@@ -724,7 +726,7 @@ export default function VerifierTab() {
 
             {pendingReports.length === 0 && (
               <View style={styles.empty}>
-                <Ionicons name="checkmark-done-outline" size={48} color={Colors.textMuted} />
+                <Ionicons name="checkmark-done-outline" size={48} color={C.textMuted} />
                 <Text style={styles.emptyText}>No hay reportes pendientes</Text>
                 <Text style={[styles.emptyText, { fontSize: 12 }]}>
                   Desliza hacia abajo para actualizar
@@ -767,14 +769,14 @@ export default function VerifierTab() {
                       styles.catPill,
                       {
                         backgroundColor:
-                          (cat?.color ?? Colors.textMuted) + '18',
+                          (cat?.color ?? C.textMuted) + '18',
                       },
                     ]}
                   >
                     <Ionicons
                       name={(cat?.icon ?? 'help-outline') as any}
                       size={14}
-                      color={cat?.color ?? Colors.textMuted}
+                      color={cat?.color ?? C.textMuted}
                     />
                     <Text style={[styles.catPillText, { color: cat?.color }]}>
                       {cat?.name ?? report.category}
@@ -815,7 +817,7 @@ export default function VerifierTab() {
                     <Ionicons
                       name="person-outline"
                       size={12}
-                      color={Colors.textMuted}
+                      color={C.textMuted}
                     />
                     <Text style={styles.metaText}>{report.userName}</Text>
                   </View>
@@ -824,7 +826,7 @@ export default function VerifierTab() {
                       <Ionicons
                         name="location-outline"
                         size={12}
-                        color={Colors.textMuted}
+                        color={C.textMuted}
                       />
                       <Text style={styles.metaText} numberOfLines={1}>
                         {report.address}
@@ -835,7 +837,7 @@ export default function VerifierTab() {
                     <Ionicons
                       name="time-outline"
                       size={12}
-                      color={Colors.textMuted}
+                      color={C.textMuted}
                     />
                     <Text style={styles.metaText}>
                       {formatTimeAgo(report.created_at)}
@@ -847,7 +849,7 @@ export default function VerifierTab() {
                   <Ionicons
                     name="heart-outline"
                     size={12}
-                    color={Colors.textMuted}
+                    color={C.textMuted}
                   />
                   <Text style={styles.metaText}>
                     {report.likes_count} apoyo
@@ -866,7 +868,7 @@ export default function VerifierTab() {
                       value={rejectionReason}
                       onChangeText={setRejectionReason}
                       placeholder="Ej: Información insuficiente, reporte duplicado..."
-                      placeholderTextColor={Colors.textMuted}
+                      placeholderTextColor={C.textMuted}
                       multiline
                       numberOfLines={2}
                       autoFocus
@@ -922,7 +924,7 @@ export default function VerifierTab() {
                       <Ionicons
                         name="close"
                         size={18}
-                        color={own ? Colors.textMuted : Colors.error}
+                        color={own ? C.textMuted : C.error}
                       />
                       <Text
                         style={[
@@ -949,7 +951,7 @@ export default function VerifierTab() {
                           <Ionicons
                             name="checkmark"
                             size={18}
-                            color={own ? Colors.textMuted : '#fff'}
+                            color={own ? C.textMuted : '#fff'}
                           />
                           <Text
                             style={[
@@ -986,7 +988,7 @@ export default function VerifierTab() {
 
             {resolutionReports.length === 0 && (
               <View style={styles.empty}>
-                <Ionicons name="construct-outline" size={48} color={Colors.textMuted} />
+                <Ionicons name="construct-outline" size={48} color={C.textMuted} />
                 <Text style={styles.emptyText}>No hay resoluciones pendientes</Text>
                 <Text style={[styles.emptyText, { fontSize: 12 }]}>
                   Las resoluciones aparecen cuando un usuario envia evidencia
@@ -1020,13 +1022,13 @@ export default function VerifierTab() {
                     <View
                       style={[
                         styles.catPill,
-                        { backgroundColor: (cat?.color ?? Colors.textMuted) + '18' },
+                        { backgroundColor: (cat?.color ?? C.textMuted) + '18' },
                       ]}
                     >
                       <Ionicons
                         name={(cat?.icon ?? 'help-outline') as any}
                         size={14}
-                        color={cat?.color ?? Colors.textMuted}
+                        color={cat?.color ?? C.textMuted}
                       />
                       <Text style={[styles.catPillText, { color: cat?.color }]}>
                         {cat?.name ?? report.category}
@@ -1067,11 +1069,11 @@ export default function VerifierTab() {
                   {/* Meta */}
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
-                      <Ionicons name="person-outline" size={12} color={Colors.textMuted} />
+                      <Ionicons name="person-outline" size={12} color={C.textMuted} />
                       <Text style={styles.metaText}>Reportado por: {report.userName}</Text>
                     </View>
                     <View style={styles.metaItem}>
-                      <Ionicons name="time-outline" size={12} color={Colors.textMuted} />
+                      <Ionicons name="time-outline" size={12} color={C.textMuted} />
                       <Text style={styles.metaText}>{formatTimeAgo(report.created_at)}</Text>
                     </View>
                   </View>
@@ -1088,7 +1090,7 @@ export default function VerifierTab() {
                       <Text style={styles.rewardPreviewLabel}>Al confirmar, se otorgaran:</Text>
                       <View style={styles.rewardPreviewItems}>
                         <View style={styles.rewardItem}>
-                          <Ionicons name="leaf" size={14} color={Colors.primary} />
+                          <Ionicons name="leaf" size={14} color={C.primary} />
                           <Text style={styles.rewardItemText}>+20 eco-puntos al resolutor</Text>
                         </View>
                         <View style={styles.rewardItem}>
@@ -1110,7 +1112,7 @@ export default function VerifierTab() {
                       onPress={() => handleRejectResolution(report)}
                       disabled={isActing}
                     >
-                      <Ionicons name="close" size={18} color={Colors.error} />
+                      <Ionicons name="close" size={18} color={C.error} />
                       <Text style={styles.rejectBtnText}>Evidencia insuficiente</Text>
                     </Pressable>
                     <Pressable
@@ -1143,24 +1145,24 @@ export default function VerifierTab() {
 // ═════════════════════════════════════════════════════════════
 // STYLES
 // ═════════════════════════════════════════════════════════════
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (C: any) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.background },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  headerSub: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: C.text },
+  headerSub: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
 
   tabRow: {
     flexDirection: 'row',
     marginHorizontal: 20,
     marginBottom: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 10,
     padding: 3,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: C.borderLight,
   },
   tab: {
     flex: 1,
@@ -1184,10 +1186,10 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: C.textMuted,
   },
   tabTextActive: {
-    color: Colors.primary,
+    color: C.primary,
   },
   tabBadge: {
     minWidth: 20,
@@ -1230,10 +1232,10 @@ const styles = StyleSheet.create({
 
   list: { paddingHorizontal: 20 },
   empty: { alignItems: 'center', marginTop: 60, gap: 12 },
-  emptyText: { fontSize: 15, color: Colors.textMuted },
+  emptyText: { fontSize: 15, color: C.textMuted },
 
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -1282,12 +1284,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 4,
   },
   cardDesc: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     lineHeight: 18,
     marginBottom: 10,
   },
@@ -1297,7 +1299,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: C.borderLight,
   },
   photo: {
     width: '100%' as any,
@@ -1312,7 +1314,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 11, color: Colors.textMuted },
+  metaText: { fontSize: 11, color: C.textMuted },
 
   // Rejection form
   rejectForm: {
@@ -1326,18 +1328,18 @@ const styles = StyleSheet.create({
   rejectFormLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.error,
+    color: C.error,
     marginBottom: 8,
   },
   rejectFormInput: {
-    backgroundColor: '#fff',
+    backgroundColor: C.surface,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FECACA',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
-    color: Colors.text,
+    color: C.text,
     minHeight: 60,
     textAlignVertical: 'top',
   },
@@ -1351,14 +1353,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   rejectFormCancelText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   rejectFormConfirm: {
     flex: 1,
@@ -1368,7 +1370,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: Colors.error,
+    backgroundColor: C.error,
   },
   rejectFormConfirmText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
@@ -1379,7 +1381,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: C.borderLight,
   },
   actionBtn: {
     flex: 1,
@@ -1391,10 +1393,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   actionBtnDisabled: { opacity: 0.35 },
-  actionTextDisabled: { color: Colors.textMuted },
+  actionTextDisabled: { color: C.textMuted },
   rejectBtn: { backgroundColor: '#FEF2F2' },
-  rejectBtnText: { fontSize: 13, fontWeight: '700', color: Colors.error },
-  approveBtn: { backgroundColor: Colors.primary },
+  rejectBtnText: { fontSize: 13, fontWeight: '700', color: C.error },
+  approveBtn: { backgroundColor: C.primary },
   approveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
   // Resolution tab
@@ -1416,12 +1418,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: C.borderLight,
   },
   sectionIconWrap: {
     width: 36,
@@ -1437,12 +1439,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 2,
   },
   sectionDesc: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     lineHeight: 17,
   },
 
@@ -1468,7 +1470,7 @@ const styles = StyleSheet.create({
   },
   rewardPreviewRole: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   rewardPreviewDivider: {
     height: 1,
@@ -1478,7 +1480,7 @@ const styles = StyleSheet.create({
   rewardPreviewLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: C.textMuted,
     marginBottom: 6,
   },
   rewardPreviewItems: {
@@ -1492,7 +1494,7 @@ const styles = StyleSheet.create({
   rewardItemText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: C.text,
   },
   comparisonRow: {
     flexDirection: 'row',
@@ -1506,7 +1508,7 @@ const styles = StyleSheet.create({
   comparisonLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: C.textMuted,
     textAlign: 'center',
   },
   comparisonPhoto: {

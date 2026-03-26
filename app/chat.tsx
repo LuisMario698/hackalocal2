@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChatBubble from '../components/chat/ChatBubble';
 import TypingIndicator from '../components/chat/TypingIndicator';
 import { ChatMessage, useChat } from '../hooks/useChat';
-import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 import { CURRENT_USER } from '../constants/MockData';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -30,6 +30,8 @@ import ReportMapPicker from '../components/ReportMapPicker';
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const C = useColors();
+  const styles = makeStyles(C);
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState('');
 
@@ -241,7 +243,7 @@ export default function ChatScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color={C.text} />
         </Pressable>
         <View style={styles.headerCenter}>
           <View style={styles.headerAvatar}>
@@ -253,7 +255,7 @@ export default function ChatScreen() {
           </View>
         </View>
         <Pressable onPress={resetChat} style={styles.resetBtn}>
-          <Ionicons name="refresh" size={20} color={Colors.textSecondary} />
+          <Ionicons name="refresh" size={20} color={C.textSecondary} />
         </Pressable>
       </View>
 
@@ -268,7 +270,7 @@ export default function ChatScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="chatbubbles-outline" size={48} color={Colors.primary} />
+              <Ionicons name="chatbubbles-outline" size={48} color={C.primary} />
             </View>
             <Text style={styles.emptyTitle}>Hola, soy tu asistente</Text>
             <Text style={styles.emptyText}>
@@ -303,7 +305,7 @@ export default function ChatScreen() {
         <TextInput
           style={styles.input}
           placeholder="Escribe un mensaje..."
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
           value={inputText}
           onChangeText={setInputText}
           multiline
@@ -334,7 +336,7 @@ export default function ChatScreen() {
               }}
               style={styles.mapModalClose}
             >
-              <Ionicons name="close" size={24} color={Colors.text} />
+              <Ionicons name="close" size={24} color={C.text} />
             </Pressable>
             <Text style={styles.mapModalTitle}>Selecciona la ubicación</Text>
             <View style={{ width: 32 }} />
@@ -373,17 +375,17 @@ export default function ChatScreen() {
                   </Text>
                 </View>
                 <Pressable onPress={clearImage} style={styles.mapImageClose}>
-                  <Ionicons name="close-circle" size={22} color={Colors.textSecondary} />
+                  <Ionicons name="close-circle" size={22} color={C.textSecondary} />
                 </Pressable>
               </View>
             ) : (
               <View style={styles.mapImageButtons}>
                 <Pressable onPress={pickImage} style={styles.mapImageBtn}>
-                  <Ionicons name="images-outline" size={20} color={Colors.primary} />
+                  <Ionicons name="images-outline" size={20} color={C.primary} />
                   <Text style={styles.mapImageBtnText}>Galería</Text>
                 </Pressable>
                 <Pressable onPress={takePhoto} style={styles.mapImageBtn}>
-                  <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+                  <Ionicons name="camera-outline" size={20} color={C.primary} />
                   <Text style={styles.mapImageBtnText}>Cámara</Text>
                 </Pressable>
               </View>
@@ -407,10 +409,10 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
   },
   // Header
   header: {
@@ -418,9 +420,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
   backBtn: {
     padding: 4,
@@ -436,7 +438,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -448,11 +450,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
   },
   headerSub: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   resetBtn: {
     padding: 8,
@@ -474,7 +476,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -482,12 +484,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -497,16 +499,16 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   suggestionPill: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: C.primary + '30',
   },
   suggestionText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: C.primary,
     fontWeight: '600',
   },
   // Input
@@ -515,26 +517,26 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 12,
     paddingTop: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: C.border,
     gap: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.borderLight,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
     maxHeight: 100,
-    color: Colors.text,
+    color: C.text,
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -544,7 +546,7 @@ const styles = StyleSheet.create({
   // Map Modal
   mapModalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
   },
   mapModalHeader: {
     flexDirection: 'row',
@@ -553,7 +555,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
   mapModalClose: {
     padding: 4,
@@ -561,11 +563,11 @@ const styles = StyleSheet.create({
   mapModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
   },
   mapModalSubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -578,7 +580,7 @@ const styles = StyleSheet.create({
   },
   coordText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     paddingVertical: 8,
   },
@@ -590,7 +592,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
@@ -611,7 +613,7 @@ const styles = StyleSheet.create({
   mapImageLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 8,
   },
   mapImageButtons: {
@@ -622,22 +624,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: C.primary + '30',
   },
   mapImageBtnText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: C.primary,
     fontWeight: '600',
   },
   mapImagePreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.background,
     borderRadius: 10,
     padding: 8,
   },
@@ -645,7 +647,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: C.border,
   },
   mapImageInfo: {
     flex: 1,
@@ -653,7 +655,7 @@ const styles = StyleSheet.create({
   },
   mapImageText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   mapImageClose: {
     padding: 4,

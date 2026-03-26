@@ -13,8 +13,8 @@ import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
+import { useColors } from '../contexts/ThemeContext';
 
 type Mode = 'login' | 'register';
 
@@ -22,6 +22,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signIn, signUp, skipLogin } = useAuth();
+  const C = useColors();
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -68,9 +69,11 @@ export default function LoginScreen() {
     router.replace('/admin' as any);
   };
 
+  const s = makeS(C);
+
   return (
     <KeyboardAvoidingView
-      style={[s.screen, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}
+      style={[s.screen, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20, backgroundColor: C.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Logo area */}
@@ -104,11 +107,11 @@ export default function LoginScreen() {
       <View style={s.form}>
         {mode === 'register' && (
           <View style={s.inputWrap}>
-            <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
+            <Ionicons name="person-outline" size={20} color={C.textMuted} style={s.inputIcon} />
             <TextInput
               style={s.input}
               placeholder="Nombre completo"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={C.textMuted}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -118,11 +121,11 @@ export default function LoginScreen() {
         )}
 
         <View style={s.inputWrap}>
-          <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
+            <Ionicons name="mail-outline" size={20} color={C.textMuted} style={s.inputIcon} />
           <TextInput
             style={s.input}
             placeholder="Correo electronico"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -132,11 +135,11 @@ export default function LoginScreen() {
         </View>
 
         <View style={s.inputWrap}>
-          <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={s.inputIcon} />
+            <Ionicons name="lock-closed-outline" size={20} color={C.textMuted} style={s.inputIcon} />
           <TextInput
             style={s.input}
             placeholder="Contraseña"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPass}
@@ -144,7 +147,7 @@ export default function LoginScreen() {
             autoCorrect={false}
           />
           <Pressable onPress={() => setShowPass(!showPass)} style={s.eyeBtn}>
-            <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.textMuted} />
+            <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={C.textMuted} />
           </Pressable>
         </View>
 
@@ -173,7 +176,7 @@ export default function LoginScreen() {
 
         <Pressable style={s.skipBtn} onPress={handleSkip}>
           <Text style={s.skipBtnText}>Continuar como usuario</Text>
-          <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
+          <Ionicons name="arrow-forward" size={18} color={C.primary} />
         </Pressable>
 
         <Pressable style={s.adminBtn} onPress={goToAdmin}>
@@ -185,10 +188,10 @@ export default function LoginScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: C.background,
     paddingHorizontal: 28,
     justifyContent: 'space-between',
   },
@@ -202,11 +205,11 @@ const s = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: Colors.primary,
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -215,21 +218,21 @@ const s = StyleSheet.create({
   appName: {
     fontSize: 30,
     fontWeight: '800',
-    color: Colors.primary,
+    color: C.primary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
 
   // Toggle
   toggleRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
     padding: 3,
   },
   toggleBtn: {
@@ -239,12 +242,12 @@ const s = StyleSheet.create({
     borderRadius: 11,
   },
   toggleBtnActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: C.textMuted,
   },
   toggleTextActive: {
     color: '#fff',
@@ -257,10 +260,10 @@ const s = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
     paddingHorizontal: 14,
     height: 52,
   },
@@ -270,19 +273,19 @@ const s = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: Colors.text,
+    color: C.text,
   },
   eyeBtn: {
     padding: 6,
   },
   loginBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: 14,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
-    shadowColor: Colors.primary,
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -309,25 +312,25 @@ const s = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: C.border,
   },
   dividerText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: C.textMuted,
   },
   skipBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     borderRadius: 14,
     height: 48,
   },
   skipBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.primary,
+    color: C.primary,
   },
   adminBtn: {
     flexDirection: 'row',
@@ -338,11 +341,11 @@ const s = StyleSheet.create({
     borderRadius: 14,
     height: 44,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
   },
   adminBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: C.textMuted,
   },
 });

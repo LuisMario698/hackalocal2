@@ -2,7 +2,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker } from 'react-native-maps';
-import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 
 interface Props {
   userLat: number;
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export default function ReportMapPicker({ userLat, userLng, pinCoord, onPress, mapRef, maxDistance = 500 }: Props) {
+  const C = useColors();
   return (
     <View style={styles.mapWrap}>
       <MapView
@@ -38,7 +39,7 @@ export default function ReportMapPicker({ userLat, userLng, pinCoord, onPress, m
         {pinCoord && (
           <Marker
             coordinate={pinCoord}
-            pinColor={Colors.accent}
+            pinColor={C.accent}
             title="Ubicacion del reporte"
           />
         )}

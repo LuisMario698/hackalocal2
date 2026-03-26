@@ -14,7 +14,7 @@ import Text from '../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,6 +24,7 @@ export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile, user, refreshProfile } = useAuth();
+  const C = useColors();
 
   const [name, setName] = useState(profile?.name ?? '');
   const [email] = useState(user?.email ?? '');
@@ -107,17 +108,18 @@ export default function AccountScreen() {
     : '';
 
   const roleName = profile?.role === 'admin' ? 'Administrador' : profile?.role === 'association' ? 'Asociacion' : 'Ciudadano';
+  const s = makeS(C);
 
   return (
     <ScrollView
-      style={[s.container, { paddingTop: insets.top + 12 }]}
+      style={[s.container, { paddingTop: insets.top + 12, backgroundColor: C.background }]}
       contentContainerStyle={s.content}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={s.header}>
         <Pressable onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
+          <Ionicons name="arrow-back" size={22} color={C.text} />
         </Pressable>
         <Text style={s.title}>Cuenta</Text>
       </View>
@@ -135,7 +137,7 @@ export default function AccountScreen() {
           </View>
         </Pressable>
         <Pressable onPress={pickAvatar} style={s.avatarBtn}>
-          <Ionicons name="camera-outline" size={16} color={Colors.primary} />
+          <Ionicons name="camera-outline" size={16} color={C.primary} />
           <Text style={s.avatarBtnText}>Cambiar foto</Text>
         </Pressable>
       </View>
@@ -148,15 +150,15 @@ export default function AccountScreen() {
           value={name}
           onChangeText={setName}
           placeholder="Tu nombre"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
         />
 
         <Text style={s.label}>Correo electronico</Text>
         <TextInput
-          style={[s.input, { backgroundColor: Colors.borderLight }]}
+          style={[s.input, { backgroundColor: C.borderLight }]}
           value={email}
           editable={false}
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
         />
 
         <Text style={s.label}>Numero de contacto</Text>
@@ -165,7 +167,7 @@ export default function AccountScreen() {
           value={phone}
           onChangeText={setPhone}
           placeholder="+52 000 000 0000"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
           keyboardType="phone-pad"
         />
 
@@ -175,7 +177,7 @@ export default function AccountScreen() {
           value={bio}
           onChangeText={setBio}
           placeholder="Cuentanos sobre ti"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
           multiline
           numberOfLines={3}
         />
@@ -184,12 +186,12 @@ export default function AccountScreen() {
       {/* Info de cuenta */}
       <View style={s.section}>
         <View style={s.infoRow}>
-          <Ionicons name="shield-checkmark-outline" size={16} color={Colors.textSecondary} />
+          <Ionicons name="shield-checkmark-outline" size={16} color={C.textSecondary} />
           <Text style={s.infoLabel}>Rol</Text>
           <Text style={s.infoValue}>{roleName}</Text>
         </View>
         <View style={s.infoRow}>
-          <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={16} color={C.textSecondary} />
           <Text style={s.infoLabel}>Miembro desde</Text>
           <Text style={s.infoValue}>{memberSince}</Text>
         </View>
@@ -209,10 +211,10 @@ export default function AccountScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: C.background,
   },
   content: {
     paddingHorizontal: 20,
@@ -227,14 +229,14 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.text,
+    color: C.text,
   },
 
   // Avatar
@@ -246,7 +248,7 @@ const s = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -276,7 +278,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -284,12 +286,12 @@ const s = StyleSheet.create({
   avatarBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.primary,
+    color: C.primary,
   },
 
   // Form
   section: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -302,19 +304,19 @@ const s = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
     marginBottom: 6,
     marginTop: 12,
   },
   input: {
-    backgroundColor: Colors.background,
+    backgroundColor: C.background,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: Platform.select({ ios: 12, default: 10 }),
     fontSize: 14,
-    color: Colors.text,
+    color: C.text,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   inputMultiline: {
     minHeight: 70,
@@ -328,22 +330,22 @@ const s = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: C.borderLight,
   },
   infoLabel: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   infoValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
   },
 
   // Save
   saveBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',

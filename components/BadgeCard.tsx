@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import Text from './ScaledText';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 import type { Badge } from '../constants/Gamification';
 
 interface BadgeCardProps {
@@ -10,16 +10,18 @@ interface BadgeCardProps {
 }
 
 export default function BadgeCard({ badge, unlocked }: BadgeCardProps) {
+  const C = useColors();
+  const styles = makeStyles(C);
   return (
     <View style={[styles.container, !unlocked && styles.locked]}>
       <View style={[styles.iconWrap, !unlocked && styles.iconLocked]}>
-        <Ionicons name={badge.icon as any} size={26} color={unlocked ? Colors.gold : Colors.textMuted} />
+        <Ionicons name={badge.icon as any} size={26} color={unlocked ? C.gold : C.textMuted} />
       </View>
       <Text style={[styles.name, !unlocked && styles.nameLocked]} numberOfLines={1}>
         {badge.name}
       </Text>
       {unlocked ? (
-        <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+        <Ionicons name="checkmark-circle" size={16} color={C.success} />
       ) : (
         <Text style={styles.requirement} numberOfLines={2}>
           {badge.requirement}
@@ -29,11 +31,11 @@ export default function BadgeCard({ badge, unlocked }: BadgeCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
     width: 100,
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 12,
     marginRight: 10,
@@ -44,10 +46,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
     borderWidth: 2,
-    borderColor: Colors.gold,
+    borderColor: C.gold,
   },
   locked: {
-    borderColor: Colors.borderLight,
+    borderColor: C.borderLight,
     opacity: 0.6,
   },
   iconWrap: {
@@ -59,16 +61,16 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
     textAlign: 'center',
     marginBottom: 2,
   },
   nameLocked: {
-    color: Colors.textMuted,
+    color: C.textMuted,
   },
   requirement: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: C.textMuted,
     textAlign: 'center',
   },
 });

@@ -22,8 +22,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
+import { useColors } from '../../contexts/ThemeContext';
 
-const PRIMARY = '#1D9E75';
 const FILTERS = ['Todos', 'Recientes', 'Cercanos', 'Mas apoyados'];
 const FILTER_KEYS = ['todos', 'recientes', 'cercanos', 'apoyados'];
 
@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { setHighlightedReportId } = useMapHighlight();
+  const C = useColors();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -426,8 +427,10 @@ export default function HomeScreen() {
     extrapolate: 'clamp',
   });
 
+  const styles = makeStyles(C);
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: C.background }]}>
       {/* Header */}
       <Animated.View
         style={[
@@ -442,7 +445,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.headerActions}>
             <Pressable style={styles.iconButton} onPress={() => setSearchVisible(true)}>
-              <Ionicons name="search-outline" size={22} color="#1A1D21" />
+              <Ionicons name="search-outline" size={22} color={C.text} />
             </Pressable>
             <Pressable style={styles.iconButton} onPress={() => setNotifsVisible(true)}>
               {unreadNotifsCount > 0 && (
@@ -452,7 +455,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               )}
-              <Ionicons name="notifications-outline" size={22} color="#1A1D21" />
+              <Ionicons name="notifications-outline" size={22} color={C.text} />
             </Pressable>
           </View>
         </View>
@@ -566,16 +569,16 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: C.background,
   },
   header: {
-    backgroundColor: '#F7FAFD',
+    backgroundColor: C.surface,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E3EAF2',
+    borderBottomColor: C.borderLight,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -593,12 +596,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 29,
     fontWeight: '800',
-    color: PRIMARY,
+    color: C.primary,
     letterSpacing: -0.7,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textSecondary,
     marginTop: 1,
   },
   headerActions: {
@@ -609,9 +612,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#E3EAF2',
+    borderColor: C.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -643,18 +646,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#DCE5EF',
+    borderColor: C.border,
   },
   filterPillActive: {
-    backgroundColor: PRIMARY,
-    borderColor: PRIMARY,
+    backgroundColor: C.primary,
+    borderColor: C.primary,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: C.textSecondary,
   },
   filterTextActive: {
     color: '#FFFFFF',
@@ -665,7 +668,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: PRIMARY,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -681,7 +684,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#0F766E',
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

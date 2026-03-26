@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import Text from './ScaledText';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 import { getUserLevel, getLevelProgress, getNextLevel } from '../constants/Gamification';
 
 interface LevelBarProps {
@@ -9,6 +9,8 @@ interface LevelBarProps {
 }
 
 export default function LevelBar({ points }: LevelBarProps) {
+  const C = useColors();
+  const styles = makeStyles(C);
   const level = getUserLevel(points);
   const progress = getLevelProgress(points);
   const next = getNextLevel(points);
@@ -17,7 +19,7 @@ export default function LevelBar({ points }: LevelBarProps) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.levelIconWrap}>
-          <Ionicons name={level.icon as any} size={26} color={Colors.primary} />
+          <Ionicons name={level.icon as any} size={26} color={C.primary} />
         </View>
         <View style={styles.info}>
           <Text style={styles.levelName}>{level.name}</Text>
@@ -40,9 +42,9 @@ export default function LevelBar({ points }: LevelBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -61,7 +63,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -72,31 +74,31 @@ const styles = StyleSheet.create({
   levelName: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
   },
   levelNumber: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
   },
   points: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.primary,
+    color: C.primary,
   },
   barBg: {
     height: 10,
-    backgroundColor: Colors.xpBarBg,
+    backgroundColor: C.xpBarBg,
     borderRadius: 5,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    backgroundColor: Colors.xpBar,
+    backgroundColor: C.xpBar,
     borderRadius: 5,
   },
   nextLabel: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: C.textMuted,
     marginTop: 6,
     textAlign: 'right',
   },

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
+import { useColors } from '../contexts/ThemeContext';
 
 interface Props {
   userLat: number;
@@ -55,6 +56,7 @@ function selectPinIcon() {
 }
 
 export default function ReportMapPicker({ userLat, userLng, pinCoord, onPress, maxDistance = 500 }: Props) {
+  const C = useColors();
   if (!L) return <View style={styles.mapWrap}><span style={{padding:20,color:'#9CA3AF'}}>Cargando mapa...</span></View>;
 
   const { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } = require('react-leaflet');
@@ -106,7 +108,7 @@ export default function ReportMapPicker({ userLat, userLng, pinCoord, onPress, m
             <Circle
               center={[userLat, userLng]}
               radius={maxDistance}
-              pathOptions={{ fillColor: Colors.primary, color: Colors.primary, fillOpacity: 0.1, weight: 1.5 }}
+              pathOptions={{ fillColor: C.primary, color: C.primary, fillOpacity: 0.1, weight: 1.5 }}
             />
           )}
 

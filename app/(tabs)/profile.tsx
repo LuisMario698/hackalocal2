@@ -12,7 +12,7 @@ import {
 import Text from '../../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { BADGES, getUserLevel, getLevelProgress, getNextLevel } from '../../constants/Gamification';
 import BadgeCard from '../../components/BadgeCard';
 import { useAuth } from '../../contexts/AuthContext';
@@ -59,14 +59,16 @@ interface MenuItemProps {
 }
 
 function MenuItem({ icon, label, subtitle, expanded, onPress, children, accentColor }: MenuItemProps) {
+  const C = useColors();
+  const s = makeS(C);
   return (
     <View style={s.menuItem}>
       <Pressable
         onPress={onPress}
         style={({ pressed }) => [s.menuRow, pressed && s.menuRowPressed]}
       >
-        <View style={[s.menuIconBox, { backgroundColor: accentColor ?? Colors.primaryLight }]}>  
-          <Ionicons name={icon} size={20} color={accentColor ? '#fff' : Colors.primary} />
+        <View style={[s.menuIconBox, { backgroundColor: accentColor ?? C.primaryLight }]}>  
+          <Ionicons name={icon} size={20} color={accentColor ? '#fff' : C.primary} />
         </View>
         <View style={s.menuTextWrap}>
           <Text style={s.menuLabel}>{label}</Text>
@@ -75,7 +77,7 @@ function MenuItem({ icon, label, subtitle, expanded, onPress, children, accentCo
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={Colors.textMuted}
+          color={C.textMuted}
         />
       </Pressable>
       {expanded && <View style={s.menuContent}>{children}</View>}
@@ -86,6 +88,7 @@ function MenuItem({ icon, label, subtitle, expanded, onPress, children, accentCo
 export default function ProfileScreen() {
   const { profile, user, signOut } = useAuth();
   const router = useRouter();
+  const C = useColors();
   const [openSection, setOpenSection] = useState<SectionId | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [history, setHistory] = useState<ActionHistory[]>([]);
@@ -198,6 +201,8 @@ export default function ProfileScreen() {
     setOpenSection(prev => (prev === id ? null : id));
   };
 
+  const s = makeS(C);
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -208,7 +213,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.content}>
+    <ScrollView style={[s.screen, { backgroundColor: C.background }]} contentContainerStyle={s.content}>
       {/* ===== HEADER UBER-STYLE ===== */}
       <View style={s.header}>
         <View style={s.headerTop}>
@@ -252,7 +257,7 @@ export default function ProfileScreen() {
           { val: `${streakDays}`, label: 'Racha', icon: 'flame-outline' as const },
         ].map(stat => (
           <View key={stat.label} style={s.statBox}>
-            <Ionicons name={stat.icon} size={16} color={Colors.primary} style={{ marginBottom: 4 }} />
+            <Ionicons name={stat.icon} size={16} color={C.primary} style={{ marginBottom: 4 }} />
             <Text style={s.statValue}>{stat.val}</Text>
             <Text style={s.statLabel}>{stat.label}</Text>
           </View>
@@ -291,7 +296,7 @@ export default function ProfileScreen() {
             <View key={entry.userId} style={[s.leaderRow, isMe && s.leaderRowMe]}>
               <Text style={[
                 s.leaderRank,
-                entry.rank <= 3 && { color: entry.rank === 1 ? Colors.gold : entry.rank === 2 ? Colors.silver : Colors.bronze, fontWeight: '800' },
+                entry.rank <= 3 && { color: entry.rank === 1 ? C.gold : entry.rank === 2 ? C.silver : C.bronze, fontWeight: '800' },
               ]}>#{entry.rank}</Text>
               <Text style={[s.leaderName, isMe && s.leaderNameMe]} numberOfLines={1}>
                 {entry.name}
@@ -312,7 +317,7 @@ export default function ProfileScreen() {
         {history.map(action => (
           <View key={action.id} style={s.historyRow}>
             <View style={s.historyIconWrap}>
-              <Ionicons name={ACTION_ICONS[action.type] ?? 'ellipse'} size={16} color={Colors.primary} />
+              <Ionicons name={ACTION_ICONS[action.type] ?? 'ellipse'} size={16} color={C.primary} />
             </View>
             <View style={s.historyInfo}>
               <Text style={s.historyDesc} numberOfLines={1}>{action.description}</Text>
@@ -331,10 +336,10 @@ export default function ProfileScreen() {
         style={s.settingsRow}
       >
         <View style={s.settingsRowIcon}>
-          <Ionicons name="settings-outline" size={20} color={Colors.primary} />
+          <Ionicons name="settings-outline" size={20} color={C.primary} />
         </View>
         <Text style={s.settingsRowLabel}>Configuracion</Text>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
       </Pressable>
 
       {/* Boton cerrar sesion */}
@@ -343,7 +348,7 @@ export default function ProfileScreen() {
           <Ionicons name="log-out-outline" size={20} color="#d32f2f" />
         </View>
         <Text style={[s.settingsRowLabel, { color: '#d32f2f' }]}>Cerrar sesion</Text>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
       </Pressable>
 
       <View style={{ height: 100 }} />
@@ -351,13 +356,13 @@ export default function ProfileScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+const makeS = (C: any) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.background },
   content: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 20 },
 
   // ===== Header =====
   header: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -372,40 +377,40 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: { fontSize: 20, fontWeight: '700', color: '#fff' },
   avatarImage: { width: 56, height: 56, borderRadius: 28 },
   headerInfo: { flex: 1, marginLeft: 14 },
-  userName: { fontSize: 20, fontWeight: '700', color: Colors.text },
-  userLevel: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  userName: { fontSize: 20, fontWeight: '700', color: C.text },
+  userLevel: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
   pointsBadge: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
     alignItems: 'center',
   },
-  pointsValue: { fontSize: 18, fontWeight: '800', color: Colors.primary },
-  pointsLabel: { fontSize: 10, color: Colors.primary, fontWeight: '600' },
+  pointsValue: { fontSize: 18, fontWeight: '800', color: C.primary },
+  pointsLabel: { fontSize: 10, color: C.primary, fontWeight: '600' },
 
   miniBarBg: {
     height: 6,
-    backgroundColor: Colors.xpBarBg,
+    backgroundColor: C.xpBarBg,
     borderRadius: 3,
     marginTop: 16,
     overflow: 'hidden',
   },
   miniBarFill: {
     height: '100%',
-    backgroundColor: Colors.xpBar,
+    backgroundColor: C.xpBar,
     borderRadius: 3,
   },
   miniBarText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: C.textMuted,
     marginTop: 6,
     textAlign: 'right',
   },
@@ -418,7 +423,7 @@ const s = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
@@ -428,12 +433,12 @@ const s = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  statValue: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  statLabel: { fontSize: 10, color: Colors.textMuted, marginTop: 3 },
+  statValue: { fontSize: 18, fontWeight: '700', color: C.text },
+  statLabel: { fontSize: 10, color: C.textMuted, marginTop: 3 },
 
   // ===== Menu items =====
   menuItem: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     marginBottom: 10,
     overflow: 'hidden',
@@ -448,7 +453,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  menuRowPressed: { backgroundColor: Colors.borderLight },
+  menuRowPressed: { backgroundColor: C.borderLight },
   menuIconBox: {
     width: 38,
     height: 38,
@@ -457,13 +462,13 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   menuTextWrap: { flex: 1, marginLeft: 14 },
-  menuLabel: { fontSize: 15, fontWeight: '600', color: Colors.text },
-  menuSubtitle: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
+  menuLabel: { fontSize: 15, fontWeight: '600', color: C.text },
+  menuSubtitle: { fontSize: 12, color: C.textMuted, marginTop: 1 },
   menuContent: {
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: C.borderLight,
     paddingTop: 12,
   },
 
@@ -474,18 +479,18 @@ const s = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: C.borderLight,
   },
   leaderRowMe: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     borderRadius: 10,
     borderBottomWidth: 0,
     paddingHorizontal: 8,
   },
   leaderRank: { fontSize: 15, width: 34, textAlign: 'center' },
-  leaderName: { flex: 1, fontSize: 13, color: Colors.text, marginLeft: 4 },
-  leaderNameMe: { fontWeight: '700', color: Colors.primary },
-  leaderPts: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  leaderName: { flex: 1, fontSize: 13, color: C.text, marginLeft: 4 },
+  leaderNameMe: { fontWeight: '700', color: C.primary },
+  leaderPts: { fontSize: 12, fontWeight: '600', color: C.textSecondary },
 
   // ===== History =====
   historyRow: {
@@ -493,33 +498,33 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 9,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: C.borderLight,
   },
   historyIconWrap: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   historyInfo: { flex: 1, marginLeft: 8 },
-  historyDesc: { fontSize: 12, color: Colors.text },
-  historyDate: { fontSize: 10, color: Colors.textMuted, marginTop: 2 },
+  historyDesc: { fontSize: 12, color: C.text },
+  historyDate: { fontSize: 10, color: C.textMuted, marginTop: 2 },
   historyPts: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.primary,
+    color: C.primary,
     minWidth: 40,
     textAlign: 'right',
   },
-  historyPtsNeg: { color: Colors.accent },
+  historyPtsNeg: { color: C.accent },
 
   // ===== Settings row (bottom) =====
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginTop: 10,
@@ -533,7 +538,7 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -542,6 +547,6 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.text,
+    color: C.text,
   },
 });

@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import ReportMapPicker from '../../components/ReportMapPicker';
 import * as ImagePicker from 'expo-image-picker';
 
-import { Colors } from '../../constants/Colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { REPORT_CATEGORIES, type ReportCategory } from '../../constants/Gamification';
 import { type ReportStatus } from '../../constants/MockData';
 import { useUserLocation } from '../../hooks/useUserLocation';
@@ -36,12 +36,23 @@ const MAX_DISTANCE = 500; // metros
 const SCREEN_W = Dimensions.get('window').width;
 
 // ─── Status helpers ──────────────────────────────────────────
-const STATUS_MAP: Record<ReportStatus, { label: string; bg: string; fg: string }> = {
-  pending: { label: 'Pendiente', bg: Colors.status.pending, fg: Colors.status.pendingText },
-  verified: { label: 'Verificado', bg: Colors.status.verified, fg: Colors.status.verifiedText },
-  in_progress: { label: 'En progreso', bg: Colors.status.inProgress, fg: Colors.status.inProgressText },
-  resolved: { label: 'Resuelto', bg: Colors.status.resolved, fg: Colors.status.resolvedText },
-  rejected: { label: 'Rechazado', bg: Colors.status.rejected, fg: Colors.status.rejectedText },
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendiente',
+  verified: 'Verificado',
+  in_progress: 'En progreso',
+  resolved: 'Resuelto',
+  rejected: 'Rechazado',
+};
+
+const getStatusEntry = (status: string, C: any) => {
+  const map: Record<string, { label: string; bg: string; fg: string }> = {
+    pending: { label: 'Pendiente', bg: C.status.pending, fg: C.status.pendingText },
+    verified: { label: 'Verificado', bg: C.status.verified, fg: C.status.verifiedText },
+    in_progress: { label: 'En progreso', bg: C.status.inProgress, fg: C.status.inProgressText },
+    resolved: { label: 'Resuelto', bg: C.status.resolved, fg: C.status.resolvedText },
+    rejected: { label: 'Rechazado', bg: C.status.rejected, fg: C.status.rejectedText },
+  };
+  return map[status] ?? map.pending;
 };
 
 // ─── Interfaces ─────────────────────────────────────────────
@@ -57,12 +68,14 @@ interface ReportItem {
 
 // ─── Small report card ──────────────────────────────────────
 function ReportCard({ report }: { report: ReportItem }) {
+  const C = useColors();
+  const s = makeS(C);
   const cat = REPORT_CATEGORIES.find(c => c.id === report.category);
-  const st = STATUS_MAP[report.status] ?? STATUS_MAP.pending;
+  const st = getStatusEntry(report.status, C);
   return (
     <View style={s.card}>
       <View style={s.cardTop}>
-        <View style={[s.catDot, { backgroundColor: cat?.color ?? Colors.textMuted }]} />
+        <View style={[s.catDot, { backgroundColor: cat?.color ?? C.textMuted }]} />
         <Text style={s.cardTitle} numberOfLines={1}>{report.title}</Text>
         <View style={[s.statusChip, { backgroundColor: st.bg }]}>
           <Text style={[s.statusText, { color: st.fg }]}>{st.label}</Text>
@@ -70,7 +83,7 @@ function ReportCard({ report }: { report: ReportItem }) {
       </View>
       <Text style={s.cardDesc} numberOfLines={2}>{report.description}</Text>
       <View style={s.cardFooter}>
-        <Ionicons name="location-outline" size={12} color={Colors.textMuted} />
+        <Ionicons name="location-outline" size={12} color={C.textMuted} />
         <Text style={s.cardAddr} numberOfLines={1}>{report.address}</Text>
         <Text style={s.cardDate}>{report.createdAt}</Text>
       </View>
@@ -86,6 +99,8 @@ export default function ReportsScreen() {
   const router = useRouter();
   const { location } = useUserLocation();
   const { user } = useAuth();
+  const C = useColors();
+  const s = makeS(C);
 
   // View toggle
   const [showForm, setShowForm] = useState(false);
@@ -314,13 +329,13 @@ export default function ReportsScreen() {
   // RENDER
   // ═══════════════════════════════════════════════════════
   return (
-    <View style={[s.screen, { paddingTop: insets.top }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: C.background }]}>
       {/* Header */}
       <View style={s.header}>
         <Text style={s.headerTitle}>{showForm ? 'Nuevo reporte' : 'Mis reportes'}</Text>
         {showForm && (
           <Pressable style={s.headerBtnCancel} onPress={resetForm}>
-            <Ionicons name="close" size={20} color={Colors.error} />
+            <Ionicons name="close" size={20} color={C.error} />
             <Text style={s.headerBtnTextCancel}>Cancelar</Text>
           </Pressable>
         )}
@@ -331,11 +346,11 @@ export default function ReportsScreen() {
         <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
           {loadingReports ? (
             <View style={s.empty}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <ActivityIndicator size="large" color={C.primary} />
             </View>
           ) : myReports.length === 0 ? (
             <View style={s.empty}>
-              <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
+              <Ionicons name="document-text-outline" size={48} color={C.textMuted} />
               <Text style={s.emptyText}>Aun no hay reportes</Text>
               <Text style={[s.emptyText, { fontSize: 13 }]}>Toca el boton + para crear uno</Text>
             </View>
@@ -380,7 +395,7 @@ export default function ReportsScreen() {
             value={title}
             onChangeText={setTitle}
             placeholder="Ej: Bache peligroso en Av. Principal"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
           />
 
           {/* Description */}
@@ -390,7 +405,7 @@ export default function ReportsScreen() {
             value={description}
             onChangeText={setDescription}
             placeholder="Describe el problema con detalle..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             multiline
             numberOfLines={3}
           />
@@ -401,17 +416,17 @@ export default function ReportsScreen() {
             <View style={s.photoPreview}>
               <Image source={{ uri: photoUri }} style={s.photoImage} />
               <Pressable style={s.photoRemove} onPress={() => setPhotoUri(null)}>
-                <Ionicons name="close-circle" size={24} color={Colors.error} />
+                <Ionicons name="close-circle" size={24} color={C.error} />
               </Pressable>
             </View>
           ) : (
             <View style={s.photoRow}>
               <Pressable style={s.photoBtn} onPress={takePhoto}>
-                <Ionicons name="camera-outline" size={22} color={Colors.primary} />
+                <Ionicons name="camera-outline" size={22} color={C.primary} />
                 <Text style={s.photoBtnText}>Camara</Text>
               </Pressable>
               <Pressable style={s.photoBtn} onPress={pickPhoto}>
-                <Ionicons name="image-outline" size={22} color={Colors.primary} />
+                <Ionicons name="image-outline" size={22} color={C.primary} />
                 <Text style={s.photoBtnText}>Galeria</Text>
               </Pressable>
             </View>
@@ -430,13 +445,13 @@ export default function ReportsScreen() {
           />
           {pinError && (
             <View style={s.pinErrorRow}>
-              <Ionicons name="alert-circle" size={16} color={Colors.error} />
+              <Ionicons name="alert-circle" size={16} color={C.error} />
               <Text style={s.pinErrorText}>{pinError}</Text>
             </View>
           )}
           {pinCoord && !pinError && (
             <View style={s.pinOkRow}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+              <Ionicons name="checkmark-circle" size={16} color={C.success} />
               <Text style={s.pinOkText}>
                 Ubicacion seleccionada ({Math.round(haversineMeters(userLat, userLng, pinCoord.latitude, pinCoord.longitude))}m de ti)
               </Text>
@@ -446,12 +461,12 @@ export default function ReportsScreen() {
           {/* Nearby duplicate warning */}
           {nearbyReports.length > 0 && (
             <View style={s.warnBox}>
-              <Ionicons name="warning" size={18} color={Colors.status.pendingText} />
+              <Ionicons name="warning" size={18} color={C.status.pendingText} />
               <View style={s.warnText}>
                 <Text style={s.warnTitle}>Reportes cercanos detectados</Text>
                 {nearbyReports.map(nr => (
                   <Text key={nr.id} style={s.warnItem}>
-                    - "{nr.title}" a {nr.distance}m ({(STATUS_MAP[nr.status as ReportStatus] ?? STATUS_MAP.pending).label})
+                    - "{nr.title}" a {nr.distance}m ({STATUS_LABELS[nr.status as ReportStatus] ?? 'Pendiente'})
                   </Text>
                 ))}
                 <Text style={s.warnHint}>El verificador sera notificado de posibles duplicados.</Text>
@@ -502,8 +517,8 @@ export default function ReportsScreen() {
 // ═════════════════════════════════════════════════════════════
 // STYLES
 // ═════════════════════════════════════════════════════════════
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+const makeS = (C: any) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.background },
 
   // Header
   header: {
@@ -513,7 +528,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: C.text },
   headerBtnCancel: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -523,7 +538,7 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-  headerBtnTextCancel: { fontSize: 13, fontWeight: '700' as const, color: Colors.error },
+  headerBtnTextCancel: { fontSize: 13, fontWeight: '700' as const, color: C.error },
 
   // FAB
   fab: {
@@ -532,7 +547,7 @@ const s = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     elevation: 6,
@@ -560,11 +575,11 @@ const s = StyleSheet.create({
   // List
   listContent: { paddingHorizontal: 20 },
   empty: { alignItems: 'center', marginTop: 60, gap: 12 },
-  emptyText: { fontSize: 15, color: Colors.textMuted },
+  emptyText: { fontSize: 15, color: C.textMuted },
 
   // Card
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
@@ -576,33 +591,33 @@ const s = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   catDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  cardTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: Colors.text },
+  cardTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: C.text },
   statusChip: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 11, fontWeight: '600' },
-  cardDesc: { fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
+  cardDesc: { fontSize: 12, color: C.textSecondary, marginBottom: 8 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardAddr: { flex: 1, fontSize: 11, color: Colors.textMuted },
-  cardDate: { fontSize: 11, color: Colors.textMuted },
+  cardAddr: { flex: 1, fontSize: 11, color: C.textMuted },
+  cardDate: { fontSize: 11, color: C.textMuted },
 
   // Form
   formContent: { paddingHorizontal: 20, paddingBottom: 20 },
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.text,
+    color: C.text,
     marginTop: 16,
     marginBottom: 6,
   },
-  hint: { fontSize: 11, color: Colors.textMuted, marginBottom: 8 },
+  hint: { fontSize: 11, color: C.textMuted, marginBottom: 8 },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: Platform.select({ ios: 12, default: 10 }),
     fontSize: 14,
-    color: Colors.text,
+    color: C.text,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   inputMulti: { minHeight: 70, textAlignVertical: 'top' },
 
@@ -613,13 +628,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: C.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
   },
-  catChipText: { fontSize: 12, fontWeight: '600', color: Colors.text },
+  catChipText: { fontSize: 12, fontWeight: '600', color: C.text },
 
   // Photo
   photoRow: { flexDirection: 'row', gap: 12 },
@@ -629,14 +644,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: C.primaryLight,
     borderRadius: 10,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     borderStyle: 'dashed',
   },
-  photoBtnText: { fontSize: 13, fontWeight: '600', color: Colors.primary },
+  photoBtnText: { fontSize: 13, fontWeight: '600', color: C.primary },
   photoPreview: { position: 'relative', borderRadius: 12, overflow: 'hidden' },
   photoImage: { width: '100%', height: 180, borderRadius: 12 },
   photoRemove: { position: 'absolute', top: 8, right: 8 },
@@ -647,29 +662,29 @@ const s = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   map: { flex: 1 },
 
   // Pin feedback
   pinErrorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  pinErrorText: { fontSize: 12, color: Colors.error },
+  pinErrorText: { fontSize: 12, color: C.error },
   pinOkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  pinOkText: { fontSize: 12, color: Colors.success },
+  pinOkText: { fontSize: 12, color: C.success },
 
   // Nearby warning
   warnBox: {
     flexDirection: 'row',
-    backgroundColor: Colors.status.pending,
+    backgroundColor: C.status.pending,
     borderRadius: 10,
     padding: 12,
     marginTop: 14,
     gap: 10,
   },
   warnText: { flex: 1 },
-  warnTitle: { fontSize: 13, fontWeight: '700', color: Colors.status.pendingText, marginBottom: 4 },
-  warnItem: { fontSize: 11, color: Colors.status.pendingText },
-  warnHint: { fontSize: 10, color: Colors.status.pendingText, marginTop: 4, fontStyle: 'italic' },
+  warnTitle: { fontSize: 13, fontWeight: '700', color: C.status.pendingText, marginBottom: 4 },
+  warnItem: { fontSize: 11, color: C.status.pendingText },
+  warnHint: { fontSize: 10, color: C.status.pendingText, marginTop: 4, fontStyle: 'italic' },
 
   // Submit
   submitBtn: {
@@ -677,7 +692,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: 14,
     paddingVertical: 16,
     marginTop: 20,
@@ -686,7 +701,7 @@ const s = StyleSheet.create({
   submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   missingHint: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: C.textMuted,
     textAlign: 'center',
     marginTop: 8,
   },

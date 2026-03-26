@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useColors } from '../../contexts/ThemeContext';
 
 function getTabMeta(routeName: string) {
   if (routeName === 'index') {
@@ -90,6 +91,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { isVerifier } = useAuth();
+  const C = useColors();
 
   // Filter out hidden tabs based on auth role
   const visibleRoutes = state.routes.filter((route) => {
@@ -139,9 +141,9 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.outer, { paddingBottom: bottomSpace }]}>
-      <View style={[styles.bar, { width: barWidth, paddingHorizontal: innerPadding }]}>
-        <View style={styles.glassTint} />
-        <View pointerEvents="none" style={styles.barOutline} />
+      <View style={[styles.bar, { width: barWidth, paddingHorizontal: innerPadding, backgroundColor: C.surface, borderColor: C.borderLight }]}>
+        <View style={[styles.glassTint, { backgroundColor: C.surface }]} />
+        <View pointerEvents="none" style={[styles.barOutline, { borderColor: C.borderLight }]} />
         <Animated.View
           style={[
             styles.activePill,
@@ -177,7 +179,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           };
 
           const meta = getTabMeta(route.name);
-          const tint = isFocused ? '#1D9E75' : '#101113';
+          const tint = isFocused ? C.primary : C.textSecondary;
           const a11yLabel = options.tabBarAccessibilityLabel;
 
           return (
