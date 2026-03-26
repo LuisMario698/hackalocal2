@@ -20,6 +20,7 @@ import ReportMapPicker from '../../components/ReportMapPicker';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useColors } from '../../contexts/ThemeContext';
+import { Colors } from '../../constants/Colors';
 import { REPORT_CATEGORIES, type ReportCategory } from '../../constants/Gamification';
 import { type ReportStatus } from '../../constants/MockData';
 import { useUserLocation } from '../../hooks/useUserLocation';
@@ -59,8 +60,10 @@ interface ReportItem {
 // ─── Small report card ──────────────────────────────────────
 function ReportCard({ report }: { report: ReportItem }) {
   const { t } = useLanguage();
+  const C = useColors();
+  const s = makeS(C);
   const cat = REPORT_CATEGORIES.find(c => c.id === report.category);
-  const st = getStatusEntry(report.status, C);
+  const st = STATUS_MAP[report.status] || STATUS_MAP.pending;
   return (
     <View style={s.card}>
       <View style={s.cardTop}>
@@ -89,6 +92,8 @@ export default function ReportsScreen() {
   const { location } = useUserLocation();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const C = useColors();
+  const s = makeS(C);
 
   // View toggle
   const [showForm, setShowForm] = useState(false);
@@ -323,7 +328,7 @@ export default function ReportsScreen() {
         <Text style={s.headerTitle}>{showForm ? t('report_new_title') : t('report_my_title')}</Text>
         {showForm && (
           <Pressable style={s.headerBtnCancel} onPress={resetForm}>
-            <Ionicons name="close" size={20} color={Colors.error} />
+            <Ionicons name="close" size={20} color={C.error} />
             <Text style={s.headerBtnTextCancel}>{t('cancel')}</Text>
           </Pressable>
         )}
@@ -338,7 +343,7 @@ export default function ReportsScreen() {
             </View>
           ) : myReports.length === 0 ? (
             <View style={s.empty}>
-              <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
+              <Ionicons name="document-text-outline" size={48} color={C.textMuted} />
               <Text style={s.emptyText}>{t('report_empty_title')}</Text>
               <Text style={[s.emptyText, { fontSize: 13 }]}>{t('report_empty_hint')}</Text>
             </View>
@@ -383,7 +388,7 @@ export default function ReportsScreen() {
             value={title}
             onChangeText={setTitle}
             placeholder={t('report_form_title_placeholder')}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
           />
 
           {/* Description */}
@@ -393,7 +398,7 @@ export default function ReportsScreen() {
             value={description}
             onChangeText={setDescription}
             placeholder={t('report_form_desc_placeholder')}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             multiline
             numberOfLines={3}
           />
@@ -410,11 +415,11 @@ export default function ReportsScreen() {
           ) : (
             <View style={s.photoRow}>
               <Pressable style={s.photoBtn} onPress={takePhoto}>
-                <Ionicons name="camera-outline" size={22} color={Colors.primary} />
+                <Ionicons name="camera-outline" size={22} color={C.primary} />
                 <Text style={s.photoBtnText}>{t('report_form_photo_camera')}</Text>
               </Pressable>
               <Pressable style={s.photoBtn} onPress={pickPhoto}>
-                <Ionicons name="image-outline" size={22} color={Colors.primary} />
+                <Ionicons name="image-outline" size={22} color={C.primary} />
                 <Text style={s.photoBtnText}>{t('report_form_photo_gallery')}</Text>
               </Pressable>
             </View>

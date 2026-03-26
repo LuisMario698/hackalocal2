@@ -341,7 +341,7 @@ export default function ProfileScreen() {
           <Ionicons name="settings-outline" size={20} color={C.primary} />
         </View>
         <Text style={s.settingsRowLabel}>{t('prof_settings')}</Text>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
       </Pressable>
 
       {/* Boton cerrar sesion */}
@@ -350,7 +350,7 @@ export default function ProfileScreen() {
           <Ionicons name="log-out-outline" size={20} color="#d32f2f" />
         </View>
         <Text style={[s.settingsRowLabel, { color: '#d32f2f' }]}>{t('prof_logout')}</Text>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
       </Pressable>
 
       <View style={{ height: 100 }} />

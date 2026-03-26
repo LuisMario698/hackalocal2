@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useColors } from '../contexts/ThemeContext';
 
 type Mode = 'login' | 'register';
 
@@ -24,6 +25,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { signIn, signUp, skipLogin } = useAuth();
   const { t } = useLanguage();
+  const C = useColors();
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -113,7 +115,7 @@ export default function LoginScreen() {
             <TextInput
               style={s.input}
               placeholder={t('login_placeholder_name')}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={C.textMuted}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -127,7 +129,7 @@ export default function LoginScreen() {
           <TextInput
             style={s.input}
             placeholder={t('login_placeholder_email')}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -141,7 +143,7 @@ export default function LoginScreen() {
           <TextInput
             style={s.input}
             placeholder={t('login_placeholder_password')}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPass}
@@ -178,7 +180,7 @@ export default function LoginScreen() {
 
         <Pressable style={s.skipBtn} onPress={handleSkip}>
           <Text style={s.skipBtnText}>{t('login_continue_guest')}</Text>
-          <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
+          <Ionicons name="arrow-forward" size={18} color={C.primary} />
         </Pressable>
 
         <Pressable style={s.adminBtn} onPress={goToAdmin}>

@@ -5,6 +5,7 @@ import { MapHighlightProvider } from '../contexts/MapHighlightContext';
 import { FontSizeProvider } from '../contexts/FontSizeContext';
 import { AuthProvider } from '../contexts/AuthContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
+import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 
 function InnerLayout() {
   const { isDark, colors } = useTheme();
@@ -31,11 +32,19 @@ function InnerLayout() {
             }}
           />
         </Stack>
-        <StatusBar style="auto" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </View>
     </MapHighlightProvider>
     </FontSizeProvider>
     </LanguageProvider>
     </AuthProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <InnerLayout />
+    </ThemeProvider>
   );
 }

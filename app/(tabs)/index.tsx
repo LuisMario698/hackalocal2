@@ -23,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useMapHighlight } from '../../contexts/MapHighlightContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 
 const PRIMARY = '#1D9E75';
 const FILTER_KEYS = ['todos', 'recientes', 'cercanos', 'apoyados'];
@@ -57,6 +58,7 @@ export default function HomeScreen() {
   const { user, profile } = useAuth();
   const { setHighlightedReportId } = useMapHighlight();
   const { t } = useLanguage();
+  const C = useColors();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -107,7 +109,7 @@ export default function HomeScreen() {
           userName: c.profiles?.name ?? 'Usuario',
           userInitials: getInitials(c.profiles?.name ?? 'U'),
           text: c.content,
-          timeAgo: formatTimeAgo(c.created_at),
+          timeAgo: formatTimeAgo(c.created_at, t),
         })),
     }));
 
@@ -156,7 +158,7 @@ export default function HomeScreen() {
           userName: c.profiles?.name ?? 'Usuario',
           userInitials: getInitials(c.profiles?.name ?? 'U'),
           text: c.content,
-          timeAgo: formatTimeAgo(c.created_at),
+          timeAgo: formatTimeAgo(c.created_at, t),
         })),
     }));
 

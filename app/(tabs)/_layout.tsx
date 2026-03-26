@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 
 function getTabMeta(routeName: string, t: (key: string) => string) {
   if (routeName === 'index') {
@@ -92,6 +93,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { width } = useWindowDimensions();
   const { isVerifier } = useAuth();
   const { t } = useLanguage();
+  const C = useColors();
 
   // Filter out hidden tabs based on auth role
   const visibleRoutes = state.routes.filter((route) => {
@@ -178,7 +180,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             });
           };
 
-          const meta = getTabMeta(route.name);
+          const meta = getTabMeta(route.name, t);
           const tint = isFocused ? C.primary : C.textSecondary;
           const a11yLabel = options.tabBarAccessibilityLabel;
 

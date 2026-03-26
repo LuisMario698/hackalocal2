@@ -26,6 +26,8 @@ export default function AccountScreen() {
   const router = useRouter();
   const { profile, user, refreshProfile } = useAuth();
   const { t } = useLanguage();
+  const C = useColors();
+  const s = makeS(C);
 
   const [name, setName] = useState(profile?.name ?? '');
   const [email] = useState(user?.email ?? '');
@@ -137,7 +139,7 @@ export default function AccountScreen() {
           </View>
         </Pressable>
         <Pressable onPress={pickAvatar} style={s.avatarBtn}>
-          <Ionicons name="camera-outline" size={16} color={Colors.primary} />
+          <Ionicons name="camera-outline" size={16} color={C.primary} />
           <Text style={s.avatarBtnText}>{t('acc_change_photo')}</Text>
         </Pressable>
       </View>
@@ -150,7 +152,7 @@ export default function AccountScreen() {
           value={name}
           onChangeText={setName}
           placeholder={t('acc_name_placeholder')}
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
         />
 
         <Text style={s.label}>{t('acc_email_label')}</Text>
@@ -177,7 +179,7 @@ export default function AccountScreen() {
           value={bio}
           onChangeText={setBio}
           placeholder={t('acc_bio_placeholder')}
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={C.textMuted}
           multiline
           numberOfLines={3}
         />
@@ -186,12 +188,12 @@ export default function AccountScreen() {
       {/* Info de cuenta */}
       <View style={s.section}>
         <View style={s.infoRow}>
-          <Ionicons name="shield-checkmark-outline" size={16} color={Colors.textSecondary} />
+          <Ionicons name="shield-checkmark-outline" size={16} color={C.textSecondary} />
           <Text style={s.infoLabel}>{t('acc_role_label')}</Text>
           <Text style={s.infoValue}>{roleName}</Text>
         </View>
         <View style={s.infoRow}>
-          <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={16} color={C.textSecondary} />
           <Text style={s.infoLabel}>{t('acc_member_since')}</Text>
           <Text style={s.infoValue}>{memberSince}</Text>
         </View>

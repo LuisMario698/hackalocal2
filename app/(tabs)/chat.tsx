@@ -422,7 +422,7 @@ export default function ChatTabScreen() {
           <TextInput
             style={styles.input}
             placeholder={isRecording ? t('chat_input_listening') : isSttLoading ? t('chat_input_processing') : t('chat_input_placeholder')}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={C.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -467,7 +467,7 @@ export default function ChatTabScreen() {
           </View>
           {pinCoord && (
             <View style={styles.mapCoordInfo}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+              <Ionicons name="checkmark-circle" size={16} color={C.primary} />
               <Text style={styles.mapCoordText}>{t('chat_map_selected')}</Text>
             </View>
           )}
@@ -490,11 +490,11 @@ export default function ChatTabScreen() {
             ) : (
               <View style={styles.mapImageButtons}>
                 <Pressable onPress={pickMapImage} style={styles.mapImageBtn}>
-                  <Ionicons name="images-outline" size={20} color={Colors.primary} />
+                  <Ionicons name="images-outline" size={20} color={C.primary} />
                   <Text style={styles.mapImageBtnText}>{t('chat_map_btn_gallery')}</Text>
                 </Pressable>
                 <Pressable onPress={takeMapPhoto} style={styles.mapImageBtn}>
-                  <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+                  <Ionicons name="camera-outline" size={20} color={C.primary} />
                   <Text style={styles.mapImageBtnText}>{t('chat_map_btn_camera')}</Text>
                 </Pressable>
               </View>

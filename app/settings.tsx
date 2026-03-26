@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFontSize, FONT_STEP_COUNT } from '../contexts/FontSizeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTheme, useColors } from '../contexts/ThemeContext';
 
 export default function SettingsScreen() {
   const { signOut } = useAuth();
@@ -90,7 +91,7 @@ export default function SettingsScreen() {
       {/* Notificaciones */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+          <Ionicons name="notifications-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>{t('settings_notifications')}</Text>
         </View>
 
@@ -121,7 +122,7 @@ export default function SettingsScreen() {
       {/* Accesibilidad — Tamano de letra */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="text-outline" size={18} color={Colors.primary} />
+          <Ionicons name="text-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>{t('settings_font_size')}</Text>
         </View>
 
@@ -168,7 +169,7 @@ export default function SettingsScreen() {
       {/* Apariencia */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="moon-outline" size={18} color={Colors.primary} />
+          <Ionicons name="moon-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>{t('settings_appearance')}</Text>
         </View>
 
@@ -189,7 +190,7 @@ export default function SettingsScreen() {
       {/* Idioma */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Ionicons name="language-outline" size={18} color={Colors.primary} />
+          <Ionicons name="language-outline" size={18} color={C.primary} />
           <Text style={s.sectionTitle}>{t('settings_language')}</Text>
         </View>
 
@@ -213,7 +214,7 @@ export default function SettingsScreen() {
         try { await signOut(); } catch {}
         router.replace('/login' as any);
       }}>
-        <Ionicons name="log-out-outline" size={18} color={Colors.error} />
+        <Ionicons name="log-out-outline" size={18} color={C.error} />
         <Text style={s.logoutText}>{t('settings_logout')}</Text>
       </Pressable>
 
@@ -317,12 +318,12 @@ const makeS = (C: any) => StyleSheet.create({
     paddingVertical: 8,
   },
   langChipActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   langChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.primary,
+    color: C.primary,
   },
   langChipTextActive: {
     color: '#fff',
