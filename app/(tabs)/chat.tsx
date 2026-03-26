@@ -18,13 +18,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChatBubble from '../../components/chat/ChatBubble';
 import TypingIndicator from '../../components/chat/TypingIndicator';
 import { ChatMessage, useChat } from '../../hooks/useChat';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Colors } from '../../constants/Colors';
 import { CURRENT_USER } from '../../constants/MockData';
 import * as ImagePicker from 'expo-image-picker';
-import * as Audio from 'expo-av';
 import { supabase } from '../../lib/supabase';
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 
 const SUGGESTIONS = [
   {
@@ -62,8 +60,17 @@ export default function ChatTabScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const recordingScale = useRef(new Animated.Value(1)).current;
+
+  // STT nativo (Web Speech API + iOS/Android)
+  const {
+    transcript,
+    isRecording,
+    isLoading: isSttLoading,
+    startRecording,
+    stopRecording,
+    error: sttError,
+  } = useSpeechRecognition({ language: 'es-ES' });
 
   // Mapeo de rol mock → rol DB
   const roleMap: Record<string, 'client' | 'association' | 'admin'> = {
@@ -77,6 +84,13 @@ export default function ChatTabScreen() {
     userId: CURRENT_USER.id,
     userRole: roleMap[CURRENT_USER.role] || 'client',
   });
+
+  // Actualizar input cuando termina el STT
+  React.useEffect(() => {
+    if (transcript && !isRecording) {
+      setInputText((prev) => prev + (prev ? ' ' : '') + transcript);
+    }
+  }, [transcript, isRecording]);
 
   const handleSend = async () => {
     if (!inputText.trim() && !selectedImage) return;
@@ -138,23 +152,11 @@ export default function ChatTabScreen() {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) {
-        console.log('Audio permission not granted');
-        return;
-      }
-
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      await recording.startAsync();
-
-      setIsRecording(true);
-
-      // Pulse animation
+  const toggleMicrophone = async () => {
+    if (isRecording) {
+      await stopRecording();
+    } else {
+      // Animar inicio de grabación
       Animated.loop(
         Animated.sequence([
           Animated.timing(recordingScale, {
@@ -170,82 +172,16 @@ export default function ChatTabScreen() {
         ])
       ).start();
 
-      // Guardar la instancia para usarla en stopRecording
-      (global as any).currentRecording = recording;
-    } catch (err) {
-      console.error('Error starting recording:', err);
+      await startRecording();
     }
   };
 
-  const stopRecording = async () => {
-    try {
-      const recording = (global as any).currentRecording;
-      if (!recording) return;
-
-      await recording.stopAndUnloadAsync();
-      setIsRecording(false);
+  // Resetear escala cuando se detiene grabación
+  React.useEffect(() => {
+    if (!isRecording) {
       recordingScale.setValue(1);
-
-      const uri = recording.getURI();
-      if (uri) {
-        // Convertir a base64
-        const base64 = await convertUriToBase64(uri);
-
-        // Enviar a transcribe-audio function
-        try {
-          const response = await fetch(
-            `${SUPABASE_URL}/functions/v1/transcribe-audio`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${await getAuthToken()}`,
-              },
-              body: JSON.stringify({ audio_base64: base64 }),
-            }
-          );
-
-          const data = await response.json();
-          if (data.text) {
-            setInputText(data.text);
-          } else if (data.error) {
-            console.error('Transcription error:', data.error);
-          }
-        } catch (err) {
-          console.error('Error transcribing audio:', err);
-        }
-      }
-    } catch (err) {
-      console.error('Error stopping recording:', err);
     }
-  };
-
-  const toggleMicrophone = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  const getAuthToken = async () => {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || '';
-  };
-
-  const convertUriToBase64 = async (uri: string): Promise<string> => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        resolve(base64.split(',')[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
+  }, [isRecording]);
 
   const renderItem = ({ item }: { item: ChatMessage }) => (
     <ChatBubble role={item.role} content={item.content} imageUrl={item.image_url} />
@@ -316,6 +252,17 @@ export default function ChatTabScreen() {
         ListFooterComponent={isLoading ? <TypingIndicator /> : null}
       />
 
+      {/* Error STT */}
+      {sttError && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="warning" size={16} color="#FFF" />
+          <Text style={styles.errorText}>{sttError}</Text>
+          <Pressable onPress={() => {}}>
+            <Ionicons name="close" size={16} color="#FFF" />
+          </Pressable>
+        </View>
+      )}
+
       {/* Input */}
       <View style={[styles.inputArea, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         {selectedImage && (
@@ -334,25 +281,26 @@ export default function ChatTabScreen() {
             <Pressable
               onPress={toggleMicrophone}
               style={[styles.iconBtn, isRecording && styles.recordingBtn]}
+              disabled={isSttLoading}
             >
               <Ionicons name="mic" size={20} color={isRecording ? '#FFF' : Colors.primary} />
             </Pressable>
           </Animated.View>
-          <Pressable onPress={takePhoto} style={styles.iconBtn}>
+          <Pressable onPress={takePhoto} style={styles.iconBtn} disabled={isRecording}>
             <Ionicons name="camera" size={20} color={Colors.primary} />
           </Pressable>
-          <Pressable onPress={pickImage} style={styles.iconBtn}>
+          <Pressable onPress={pickImage} style={styles.iconBtn} disabled={isRecording}>
             <Ionicons name="image" size={20} color={Colors.primary} />
           </Pressable>
           <TextInput
             style={styles.input}
-            placeholder={isRecording ? 'Grabando...' : 'Escribe un mensaje...'}
+            placeholder={isRecording ? 'Escuchando...' : isSttLoading ? 'Procesando...' : 'Escribe un mensaje...'}
             placeholderTextColor={Colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
             maxLength={500}
-            editable={!isRecording}
+            editable={!isRecording && !isSttLoading}
           />
           <Pressable
             onPress={handleSend}
@@ -545,5 +493,20 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.4,
+  },
+  // Error banner
+  errorBanner: {
+    backgroundColor: '#E63946',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
