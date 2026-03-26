@@ -123,6 +123,24 @@ export default function HomeScreen() {
 
   // Notifications state
   const [notifsVisible, setNotifsVisible] = useState(false);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false);
+    if (!error && count !== null) setUnreadNotifsCount(count);
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
+
+  const handleCloseNotifs = useCallback(() => {
+    setNotifsVisible(false);
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
 
   // -- Comments handlers --
   const handleOpenComments = useCallback((report: ReportData) => {
@@ -244,9 +262,13 @@ export default function HomeScreen() {
               <Ionicons name="search-outline" size={22} color="#1A1D21" />
             </Pressable>
             <Pressable style={styles.iconButton} onPress={() => setNotifsVisible(true)}>
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>3</Text>
-              </View>
+              {unreadNotifsCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadNotifsCount > 99 ? '99+' : unreadNotifsCount}
+                  </Text>
+                </View>
+              )}
               <Ionicons name="notifications-outline" size={22} color="#1A1D21" />
             </Pressable>
           </View>
@@ -328,7 +350,7 @@ export default function HomeScreen() {
       {/* Notifications */}
       <NotificationsSheet
         visible={notifsVisible}
-        onClose={() => setNotifsVisible(false)}
+        onClose={handleCloseNotifs}
       />
     </View>
   );
