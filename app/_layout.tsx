@@ -18,6 +18,14 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen name="verifier" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="chat"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </View>
