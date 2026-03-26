@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
@@ -9,21 +9,103 @@ import {
 import Text from '../../components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FeedList, { MOCK_REPORTS } from '../../components/feed/FeedList';
+import FeedList from '../../components/feed/FeedList';
 import CommentsSheet from '../../components/feed/CommentsSheet';
 import ReportDetail from '../../components/feed/ReportDetail';
 import SearchSheet from '../../components/feed/SearchSheet';
 import NotificationsSheet from '../../components/feed/NotificationsSheet';
 import { CommentData, ReportData } from '../../components/feed/FeedCard';
+import { supabase } from '../../lib/supabase';
 
 const PRIMARY = '#1D9E75';
 const FILTERS = ['Todos', 'Recientes', 'Cercanos', 'Mas apoyados'];
 const FILTER_KEYS = ['todos', 'recientes', 'cercanos', 'apoyados'];
 
+function formatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Ahora';
+  if (diffMin < 60) return `Hace ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `Hace ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `Hace ${diffWeeks} semana${diffWeeks > 1 ? 's' : ''}`;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Supabase feed state
+  const [reports, setReports] = useState<ReportData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchReports = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        *,
+        profiles ( name, avatar_url ),
+        report_comments ( id, content, created_at, user_id, profiles ( name ) )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.warn('Error fetching reports:', error.message);
+      return;
+    }
+
+    const mapped: ReportData[] = (data ?? []).map((r: any) => ({
+      id: r.id,
+      userName: r.profiles?.name ?? 'Usuario',
+      userInitials: getInitials(r.profiles?.name ?? 'U'),
+      timeAgo: formatTimeAgo(r.created_at),
+      category: r.category,
+      status: r.status,
+      title: r.title,
+      description: r.description ?? '',
+      location: r.address ?? '',
+      photoUrl: r.photo_url ?? undefined,
+      likesCount: r.likes_count ?? 0,
+      commentsCount: r.comments_count ?? 0,
+      severity: r.severity ?? 1,
+      initialComments: (r.report_comments ?? []).map((c: any) => ({
+        id: c.id,
+        userName: c.profiles?.name ?? 'Usuario',
+        userInitials: getInitials(c.profiles?.name ?? 'U'),
+        text: c.content,
+        timeAgo: formatTimeAgo(c.created_at),
+      })),
+    }));
+
+    setReports(mapped);
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchReports().finally(() => setLoading(false));
+  }, [fetchReports]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchReports().finally(() => setRefreshing(false));
+  }, [fetchReports]);
 
   // Comments sheet state
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -201,9 +283,13 @@ export default function HomeScreen() {
 
       {/* Feed */}
       <FeedList
+        reports={reports}
+        loading={loading}
         filter={FILTER_KEYS[activeFilter]}
         onOpenComments={handleOpenComments}
         onPressReport={handlePressReport}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       />
 
       {/* Comments Bottom Sheet */}
@@ -234,7 +320,7 @@ export default function HomeScreen() {
       {/* Search */}
       <SearchSheet
         visible={searchVisible}
-        reports={MOCK_REPORTS}
+        reports={reports}
         onClose={() => setSearchVisible(false)}
         onSelectReport={handleSearchSelect}
       />

@@ -24,6 +24,8 @@ const COLORS = {
   border: '#E8ECF0',
   category: {
     trash: '#E24B4A',
+    pothole: '#8B5E3C',
+    drain: '#5B8FA8',
     water: '#378ADD',
     wildlife: '#BA7517',
     electronic: '#7F77DD',
@@ -32,13 +34,17 @@ const COLORS = {
   },
   status: {
     pending: { bg: '#FAEEDA', text: '#B8860B' },
+    verified: { bg: '#E1F5EE', text: '#1D9E75' },
     in_progress: { bg: '#E6F1FB', text: '#2B6CB0' },
     resolved: { bg: '#E1F5EE', text: '#1D9E75' },
+    rejected: { bg: '#FDE8E8', text: '#C53030' },
   },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   trash: 'Basura',
+  pothole: 'Bache',
+  drain: 'Drenaje',
   water: 'Agua',
   wildlife: 'Vida silvestre',
   electronic: 'Electronico',
@@ -48,8 +54,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
+  verified: 'Verificado',
   in_progress: 'En progreso',
   resolved: 'Resuelto',
+  rejected: 'Rechazado',
 };
 
 export interface CommentData {
@@ -65,8 +73,8 @@ export interface ReportData {
   userName: string;
   userInitials: string;
   timeAgo: string;
-  category: 'trash' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
-  status: 'pending' | 'in_progress' | 'resolved';
+  category: 'trash' | 'pothole' | 'drain' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
+  status: 'pending' | 'verified' | 'in_progress' | 'resolved' | 'rejected';
   title: string;
   description: string;
   location: string;
