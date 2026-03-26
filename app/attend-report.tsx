@@ -124,7 +124,9 @@ export default function AttendReportScreen() {
   const handleClaim = async () => {
     if (!report || !user) return;
     setSubmitting(true);
-    const { error } = await (supabase as any)
+
+    // Try full update first; if attended_by/attended_at columns don't exist, fall back to status only
+    let { error } = await (supabase as any)
       .from('reports')
       .update({
         status: 'in_progress',
@@ -134,10 +136,17 @@ export default function AttendReportScreen() {
       .eq('id', report.id);
 
     if (error) {
-      Alert.alert('Error', 'No se pudo reclamar el reporte');
-      setSubmitting(false);
-      return;
+      const fallback = await (supabase as any)
+        .from('reports')
+        .update({ status: 'in_progress' })
+        .eq('id', report.id);
+      if (fallback.error) {
+        Alert.alert('Error', 'No se pudo reclamar el reporte');
+        setSubmitting(false);
+        return;
+      }
     }
+
     setReport({ ...report, status: 'in_progress', attended_by: user.id });
     setStep('in_progress');
     setSubmitting(false);
