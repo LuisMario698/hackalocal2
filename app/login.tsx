@@ -21,7 +21,7 @@ export default function LoginScreen() {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const { setIsVerifier } = useAuth();
+  const { setIsVerifier, setIsAdmin } = useAuth();
 
   const handleLogin = () => {
     const u = user.trim().toLowerCase();
@@ -30,6 +30,9 @@ export default function LoginScreen() {
     if (u === 'filtro' && p === 'filtro') {
       setIsVerifier(true);
       router.replace('/(tabs)' as any);
+    } else if (u === 'admin' && p === 'admin') {
+      setIsAdmin(true);
+      router.replace('/admin' as any);
     } else {
       Alert.alert('Credenciales incorrectas', 'Usuario o contraseña invalidos');
     }
@@ -38,6 +41,11 @@ export default function LoginScreen() {
   const handleSkip = () => {
     setIsVerifier(false);
     router.replace('/(tabs)' as any);
+  }
+
+  const goToAdmin = () => {
+    setIsAdmin(true);
+    router.replace('/admin' as any);
   };
 
   return (
@@ -95,7 +103,7 @@ export default function LoginScreen() {
         </Pressable>
       </View>
 
-      {/* Skip */}
+      {/* Bottom buttons */}
       <View style={s.bottom}>
         <View style={s.divider}>
           <View style={s.dividerLine} />
@@ -106,6 +114,11 @@ export default function LoginScreen() {
         <Pressable style={s.skipBtn} onPress={handleSkip}>
           <Text style={s.skipBtnText}>Continuar como usuario</Text>
           <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
+        </Pressable>
+
+        <Pressable style={s.adminBtn} onPress={goToAdmin}>
+          <Ionicons name="shield-half" size={18} color="#6B7280" />
+          <Text style={s.adminBtnText}>Panel de Administrador</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -228,5 +241,21 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  adminBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'transparent',
+    borderRadius: 14,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  adminBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
   },
 });
