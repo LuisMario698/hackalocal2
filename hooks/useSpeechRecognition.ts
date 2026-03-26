@@ -34,6 +34,12 @@ export const useSpeechRecognition = ({
         return;
       }
 
+      // Habilitar modo de grabación en iOS
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
