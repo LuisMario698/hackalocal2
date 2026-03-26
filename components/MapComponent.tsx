@@ -64,6 +64,7 @@ export default function MapComponent({ userLocation, reports, selectedReport, on
           longitudeDelta: 0.0421,
         }}
         showsUserLocation={true}
+        showsMyLocationButton={false}
         onPress={() => onSelectReport(null)} 
         mapPadding={{ top: 80, right: 0, bottom: 140, left: 0 }} 
       >
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   myLocationButton: {
     position: 'absolute',
     right: 20,
-    bottom: 380, // Por encima de la UI del Bottom Card
+    bottom: 220, // Adjusted to sit just above the new compact cards stack
     backgroundColor: 'white',
     padding: 12,
     borderRadius: 30,

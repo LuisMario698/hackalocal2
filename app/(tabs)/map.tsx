@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, Animated, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ScaledText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapComponent from '../../components/MapComponent';
@@ -8,6 +9,49 @@ import { useMapHighlight } from '../../contexts/MapHighlightContext';
 import { useFocusEffect } from 'expo-router';
 
 export type ReportCategory = 'trash' | 'water' | 'wildlife' | 'electronic' | 'organic' | 'other';
+
+interface ScaleButtonProps {
+  onPress?: (e?: any) => void;
+  children: React.ReactNode;
+  style?: any;
+  disabled?: boolean;
+}
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const ScaleButton: React.FC<ScaleButtonProps> = ({ onPress, children, style, disabled }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 10,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 10,
+    }).start();
+  };
+
+  return (
+    <AnimatedPressable 
+      onPressIn={onPressIn} 
+      onPressOut={onPressOut} 
+      onPress={onPress}
+      disabled={disabled}
+      style={[{ transform: [{ scale }] }, style]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+};
 
 export interface ReportMock {
   id: string;
@@ -121,7 +165,9 @@ async function fetchStreetRoute(
 export default function MapScreen() {
   const { location, errorMsg } = useUserLocation();
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedReport, setSelectedReport] = useState<ReportMock | null>(null);
+  const [expandedCard, setExpandedCard] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [routeCoords, setRouteCoords] = useState<{latitude: number, longitude: number}[]>([]);
   const insets = useSafeAreaInsets();
@@ -132,6 +178,7 @@ export default function MapScreen() {
 
   const handleFilterPress = (catId: string) => {
     setActiveFilter(catId);
+    setShowFilters(false);
     setSelectedReport(null);
     setShowRoute(false);
     setRouteCoords([]);
@@ -139,9 +186,10 @@ export default function MapScreen() {
 
   const handleSelectReport = (report: ReportMock | null) => {
     setSelectedReport(report);
-    // Siempe que haya nuevo reporte seleccionado, limpia el viejo trayecto
+    setExpandedCard(false);
     setShowRoute(false);
     setRouteCoords([]);
+    setShowFilters(false);
   };
 
   const { highlightedReportId, clearHighlight } = useMapHighlight();
@@ -230,30 +278,64 @@ export default function MapScreen() {
 
   return (
     <View style={styles.mapContainer}>
-      <View style={[styles.filterContainer, { top: insets.top || 10 }]} pointerEvents="box-none">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll} keyboardShouldPersistTaps="handled">
-          {CATEGORIES.map(cat => {
-            const isActive = activeFilter === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.filterPill,
-                  isActive ? { backgroundColor: cat.color, borderColor: cat.color } : { backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }
-                ]}
-                onPress={() => handleFilterPress(cat.id)}
-              >
-                <Text style={{ 
-                  color: isActive ? '#FFFFFF' : '#4B5563', 
-                  fontWeight: isActive ? 'bold' : '600',
-                  fontSize: 14 
-                }}>
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
-        </ScrollView>
+      <View style={[styles.filterContainer, { top: (insets.top || 10) + 15 }]} pointerEvents="box-none">
+        {activeFilter !== 'all' ? (
+          <ScaleButton 
+            style={[styles.filterPillMain, { borderColor: CATEGORIES.find(c => c.id === activeFilter)?.color || '#1D9E75', borderWidth: 1.5 }]} 
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons name="filter" size={18} color={CATEGORIES.find(c => c.id === activeFilter)?.color || '#1D9E75'} />
+            <Text style={[styles.filterPillMainText, { color: CATEGORIES.find(c => c.id === activeFilter)?.color || '#111827' }]}>
+              {CATEGORIES.find(c => c.id === activeFilter)?.label}
+            </Text>
+            <TouchableOpacity 
+              style={styles.clearFilterIcon} 
+              onPress={(e) => { e.stopPropagation(); handleFilterPress('all'); setShowFilters(false); }}
+            >
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          </ScaleButton>
+        ) : (
+          <ScaleButton 
+            style={styles.filterPillMain} 
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons name="options-outline" size={20} color="#1F2937" />
+            <Text style={styles.filterPillMainText}>Filtros</Text>
+            {showFilters && <Ionicons name="chevron-up" size={16} color="#6B7280" style={{ marginLeft: 6 }} />}
+            {!showFilters && <Ionicons name="chevron-down" size={16} color="#6B7280" style={{ marginLeft: 6 }} />}
+          </ScaleButton>
+        )}
+        
+        {showFilters && (
+          <View style={styles.filterDropdownWrapper}>
+            {CATEGORIES.map(cat => {
+              const isActive = activeFilter === cat.id;
+              return (
+                <ScaleButton
+                  key={cat.id}
+                  style={[
+                    styles.filterDropdownItem,
+                    isActive && styles.filterDropdownItemActive
+                  ]}
+                  onPress={() => handleFilterPress(cat.id)}
+                >
+                  <View style={[styles.dropdownDot, { backgroundColor: cat.color, position: 'absolute', left: 16 }]} />
+                  <Text style={{ 
+                    color: isActive ? '#111827' : '#4B5563', 
+                    fontWeight: isActive ? 'bold' : '600',
+                    fontSize: 15,
+                    textAlign: 'center',
+                    flex: 1
+                  }}>
+                    {cat.label}
+                  </Text>
+                  {isActive && <Ionicons name="checkmark" size={18} color="#1D9E75" style={{ position: 'absolute', right: 16 }} />}
+                </ScaleButton>
+              )
+            })}
+          </View>
+        )}
       </View>
 
       <MapComponent 
@@ -266,51 +348,70 @@ export default function MapScreen() {
 
       {selectedReport && (
         <View style={styles.cardsStack} pointerEvents="box-none">
-          {showRoute && routeInfo && (
-            <View style={styles.routeInfoCard}>
-              <View style={styles.routeInfoRow}>
-                <View style={styles.routeInfoItem}>
-                  <Text style={styles.routeInfoLabel}>Por carretera</Text>
-                  <Text style={styles.routeInfoValue}>{routeInfo.distanceKm.toFixed(2)} km</Text>
-                </View>
-                <View style={styles.routeInfoDivider} />
-                <View style={styles.routeInfoItem}>
-                  <Text style={styles.routeInfoLabel}>En auto</Text>
-                  <Text style={styles.routeInfoValue}>{routeInfo.durationMins} min</Text>
-                </View>
-                <View style={styles.routeInfoDivider} />
-                <View style={styles.routeInfoItem}>
-                  <Text style={styles.routeInfoLabel}>Caminando</Text>
-                  <Text style={styles.routeInfoValue}>{Math.max(1, Math.round(routeInfo.durationMins * 8))} min</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.bottomCard}>
-            <View style={styles.cardHeader}>
-              <View>
-                <Text style={styles.cardTitle}>{selectedReport.title}</Text>
-                <Text style={styles.cardCategory}>Categoría: {CATEGORIES.find(c => c.id === selectedReport.category)?.label}</Text>
-              </View>
-              <TouchableOpacity style={styles.closeButton} onPress={() => handleSelectReport(null)}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {!location && (
-              <Text style={styles.calcText}>Calculando tu ubicación...</Text>
-            )}
-
-            <TouchableOpacity
-              style={[styles.routeButton, showRoute && styles.routeButtonActive]}
-              onPress={toggleRoute}
-              disabled={!location || loadingRoute}
+          <View style={[styles.compactCard, { padding: 0 }]}>
+            <ScaleButton 
+              style={{ padding: 16, paddingBottom: 8 }}
+              onPress={() => {
+                setExpandedCard(!expandedCard);
+                setShowFilters(false);
+              }}
             >
-              <Text style={styles.routeButtonText}>
-                {loadingRoute ? 'Calculando ruta...' : showRoute ? 'Ocultar Ruta' : 'Trazar Ruta en el Mapa'}
-              </Text>
-            </TouchableOpacity>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardHeaderLeft}>
+                  <Text style={styles.cardTitle} numberOfLines={expandedCard ? 3 : 1}>{selectedReport.title}</Text>
+                  <Text style={styles.cardCategory}>
+                    {CATEGORIES.find(c => c.id === selectedReport.category)?.label}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.closeButton} onPress={() => handleSelectReport(null)}>
+                  <Ionicons name="close" size={18} color="#4B5563" />
+                </TouchableOpacity>
+              </View>
+
+              {expandedCard && (
+                <View style={styles.expandedContent}>
+                  <Text style={styles.expandedDescription}>
+                    Este es un reporte detallado registrado en nuestra plataforma. Al dar clic aquí, puedes ver más contexto sobre el incidente marcado en el mapa, visualizar imágenes adjuntas al incidente por la comunidad, y leer los comentarios u observaciones.
+                  </Text>
+                  <View style={styles.expandedMockImage}>
+                    <Ionicons name="image-outline" size={40} color="#9CA3AF" />
+                    <Text style={styles.expandedMockImageText}>Foto adjunta (Demo)</Text>
+                  </View>
+                </View>
+              )}
+            </ScaleButton>
+
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+              {showRoute && routeInfo ? (
+                <View style={styles.routeCompactInfo}>
+                  <View style={styles.routeMetric}>
+                    <Ionicons name="car" size={16} color="#6B7280" />
+                    <Text style={styles.routeMetricText}>{routeInfo.durationMins}m</Text>
+                  </View>
+                  <View style={styles.routeMetric}>
+                    <Ionicons name="walk" size={16} color="#6B7280" />
+                    <Text style={styles.routeMetricText}>{Math.max(1, Math.round(routeInfo.durationMins * 8))}m</Text>
+                  </View>
+                  <View style={styles.routeMetric}>
+                    <Ionicons name="location" size={16} color="#6B7280" />
+                    <Text style={styles.routeMetricText}>{routeInfo.distanceKm.toFixed(1)} km</Text>
+                  </View>
+                </View>
+              ) : !location && (
+                <Text style={styles.calcText}>Calculando tu ubicación...</Text>
+              )}
+
+              <ScaleButton
+                style={[styles.routeButton, showRoute && styles.routeButtonActive]}
+                onPress={() => toggleRoute()}
+                disabled={!location || loadingRoute}
+              >
+                <Ionicons name={showRoute ? "close-circle" : "navigate"} size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.routeButtonText}>
+                  {loadingRoute ? 'Calculando...' : showRoute ? 'Ocultar Ruta' : 'Ruta'}
+                </Text>
+              </ScaleButton>
+            </View>
           </View>
         </View>
       )}
@@ -334,158 +435,181 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    alignItems: 'center',
     zIndex: 999,
   },
-  filterScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 4,
+  filterPillMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center'
-  },
-  bottomCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  filterPillMainText: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: '#111827',
+    marginLeft: 8,
+  },
+  clearFilterIcon: {
+    marginLeft: 8,
+    padding: 2,
+  },
+  filterDropdownWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: 150,
+  },
+  filterDropdownItemActive: {
+    backgroundColor: '#F3F4F6',
+  },
+  dropdownDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  cardsStack: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 120,
     zIndex: 999,
+  },
+  compactCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    marginRight: 10,
   },
   cardTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#111827',
   },
   cardCategory: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 4,
-    marginBottom: 16
+    fontWeight: '600',
+    marginTop: 2,
   },
   closeButton: {
     backgroundColor: '#F3F4F6',
-    borderRadius: 16,
-    width: 32,
-    height: 32,
+    borderRadius: 14,
+    width: 28,
+    height: 28,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
-  closeButtonText: {
+  expandedContent: {
+    marginBottom: 16,
+  },
+  expandedDescription: {
     fontSize: 14,
     color: '#4B5563',
-    fontWeight: 'bold'
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  metricsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  expandedMockImage: {
+    width: '100%',
+    height: 120,
     backgroundColor: '#F3F4F6',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20
-  },
-  metricBox: {
+    borderRadius: 12,
     alignItems: 'center',
-    flex: 1
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  metricSeparator: {
-    width: 1,
-    backgroundColor: '#D1D5DB'
-  },
-  metricLabel: {
+  expandedMockImageText: {
+    marginTop: 8,
+    color: '#9CA3AF',
     fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 6
+    fontWeight: '500',
   },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827'
+  routeCompactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    justifyContent: 'space-between',
+  },
+  routeMetric: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  routeMetricText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginLeft: 4,
   },
   calcText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#9CA3AF',
     fontStyle: 'italic',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center'
   },
   routeButton: {
     backgroundColor: '#10B981',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center'
+    flexDirection: 'row',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   routeButtonActive: {
     backgroundColor: '#EF4444' 
   },
   routeButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold'
-  },
-  cardsStack: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 120,
-    zIndex: 999,
-    gap: 10,
-  },
-  routeInfoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  routeInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 16,
-    padding: 16,
-  },
-  routeInfoItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  routeInfoDivider: {
-    width: 1,
-    backgroundColor: '#D1D5DB',
-    alignSelf: 'stretch',
-  },
-  routeInfoLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 6,
-  },
-  routeInfoValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
   },
 });
